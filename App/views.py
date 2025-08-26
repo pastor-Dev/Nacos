@@ -23,7 +23,7 @@ def signin_view(request):
         else:
             messages.error(request, "Invalid username or password.")
 
-    return render(request, 'landingPage.html', {'form': form})
+    return render(request, 'index.html', {'form': form})
 
 
 def signup_view(request):
