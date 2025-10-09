@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'App'
+    'App',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -127,3 +128,8 @@ LOGIN_REDIRECT_URL = 'dashboard'
 
 LOGOUT_REDIRECT_URL = 'login'  # or wherever your login page is
 LOGIN_URL = 'login'  # for @login_required
+
+
+# Add at the bottom of settings.py
+PAYSTACK_PUBLIC_KEY = 'pk_test_888eecafe1090351dc7aff53dfb8b45af27cb691'  # Get from Paystack dashboard
+PAYSTACK_SECRET_KEY = 'sk_test_7aa554fca3703d55303f05a4a33fbe2c01528a15'  # Get from Paystack dashboard

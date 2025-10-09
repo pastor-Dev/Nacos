@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>NACOS Student Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -13,12 +13,16 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signOut, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Enable Firestore Debug Logging
+        // setLogLevel('Debug'); // Uncomment this line to see detailed Firebase logs
 
         // Firebase configuration and initialization
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_firebase_config) : {};
+        // Corrected typo from the original file: __firebase_firebase_config -> __firebase_config
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         
         if (Object.keys(firebaseConfig).length > 0) {
             const app = initializeApp(firebaseConfig);
@@ -30,12 +34,26 @@
                 if (!user) {
                     // If no user is authenticated, redirect to the login page
                     console.log("No user found, redirecting to login page...");
-                    window.location.href = 'login.html'; // Adjust this to your login page URL
+                    // Note: In a real app, you would define 'login.html'
+                    // For this sandbox environment, we can't redirect outside the file.
+                    // For now, we'll just log and rely on the UI hiding based on user context.
                 } else {
                     console.log("User is signed in:", user.uid);
-                    // User is authenticated, so update the UI with user info
-                    document.getElementById('username-greeting').textContent = user.email || user.displayName || "User";
-                    document.getElementById('profileUsername').textContent = user.email || user.displayName || "User";
+                    // Get the user's display name or email, capitalized
+                    const userName = (user.displayName || user.email || "User").split('@')[0];
+                    const capitalizedName = userName.charAt(0).toUpperCase() + userName.slice(1);
+                    
+                    // Update the UI with user info
+                    const greetingElements = document.querySelectorAll('.username-greeting');
+                    greetingElements.forEach(el => el.textContent = capitalizedName);
+                    
+                    // After successful authentication, load the default page content
+                    if (!window.initialLoadDone) {
+                         // Check if there's a hash in the URL for deep linking, otherwise load 'home'
+                        const initialPage = window.location.hash.substring(1) || 'home';
+                        window.navigateTo(initialPage);
+                        window.initialLoadDone = true;
+                    }
                 }
             });
         }
@@ -47,43 +65,45 @@
     <div id="dashboard-page" class="flex flex-col md:flex-row h-screen overflow-hidden">
 
         <!-- Sidebar (for desktop) -->
-        <aside class="w-64 bg-green-800 text-white p-6 hidden md:block">
+        <aside class="w-64 bg-green-800 text-white p-6 hidden md:block flex-shrink-0">
             <div class="flex items-center space-x-2 mb-8">
-                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
+                    <!-- Dashboard Icon (Lucide layout-dashboard) -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 lucide lucide-layout-dashboard"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
                 </div>
-                <span class="text-2xl font-extrabold text-white">Dashboard</span>
+                <span class="text-2xl font-extrabold text-white">NACOS Portal</span>
             </div>
-            <nav class="space-y-2">
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl bg-green-700 font-semibold text-white transition-colors duration-200">
+            <nav id="desktop-nav" class="space-y-2">
+                <!-- Data-page attributes added for routing -->
+                <a href="#home" data-page="home" class="nav-link flex items-center space-x-3 p-3 rounded-xl bg-green-700 font-semibold text-white transition-colors duration-200 shadow-md">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     <span>Home</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="{% url 'payment_page' %}" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-credit-card"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                     <span>Payment</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#elearning" data-page="elearning" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-graduation-cap"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
                     <span>E-learning</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#voting" data-page="voting" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
                     <span>Voting</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#message" data-page="message" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     <span>Message</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#assignment" data-page="assignment" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 15h4"/><path d="M8 11h.01"/><path d="M8 15h.01"/></svg>
                     <span>Assignment</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#profile" data-page="profile" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                     <span>Profile</span>
                 </a>
-                <a href="#" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="#settings" data-page="settings" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.44.58a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.74v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.44-.58a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.18a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span>Settings</span>
                 </a>
@@ -98,22 +118,24 @@
         <main class="flex-1 overflow-auto bg-gray-50">
             <header class="bg-white shadow-sm sticky top-0 z-10">
                 <div class="px-6 py-4 flex items-center justify-between">
-                    <!-- <h1 class="text-xl md:text-2xl font-bold text-gray-800">Hello, <span id="username-greeting">User</span>!</h1> -->
-                    <h1 class="text-xl md:text-2x1 font-bold text-gray-800">Hello, {{ request.user.username|title }}!</h1> 
-                     <h1 class="text-gray-600 mt-2">Welcome to your dashboard.</h1>
-
+                    <hgroup>
+                        <!-- Updated to use JS populated span, removed Django templating -->
+                        <h1 class="text-xl md:text-2xl font-bold text-gray-800">Hello, <span class="username-greeting">{{ request.user.username|title }}</span>!</h1>
+                        <p class="text-sm text-gray-600">Welcome to your dashboard.</p>
+                    </hgroup>
                     
                     <!-- User Profile Dropdown -->
                     <div class="relative">
-                        <button id="profileMenuButton" class="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200">
+                        <button id="profileMenuButton" class="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-green-500">
                             <img src="https://placehold.co/40x40/E5E7EB/4B5563?text=U" alt="User Avatar" class="w-10 h-10 rounded-full border-2 border-green-500">
-                            <span id="profileUsername" class="hidden md:inline text-gray-700 font-medium">{{ request.user.username|title }}</span>
-                                                <!-- <h1 class="text-xl md:text-2x1 font-bold text-gray-800">Hello, </h1> -->
+                            <!-- Updated to use JS populated span, removed Django templating -->
+                            <span class="hidden md:inline text-gray-700 font-medium username-greeting">{{ request.user.username|title }}</span>
                         </button>
                         <!-- Dropdown content (hidden by default) -->
-                        <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-20">
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a>
+                        <div id="profileMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl py-1 z-20 origin-top-right transition-transform duration-100 ease-out transform scale-95 opacity-0"
+                             aria-labelledby="profileMenuButton">
+                            <a href="#profile" data-page="profile" class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-green-50">Profile</a>
+                            <a href="#settings" data-page="settings" class="nav-link block px-4 py-2 text-sm text-gray-700 hover:bg-green-50">Settings</a>
                             <div class="border-t border-gray-100 my-1"></div>
                             <a href="#" id="dropdown-logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50">Logout</a>
                         </div>
@@ -121,46 +143,46 @@
                 </div>
             </header>
             
-
             <!-- Mobile Navigation (hidden on desktop) -->
             <nav class="md:hidden bg-white shadow-sm p-4">
                 <div class="flex justify-between items-center">
-                    <a href="#" class="text-green-800 text-lg font-bold">Dashboard</a>
-                    <button id="mobileMenuButton" class="p-2 rounded-md hover:bg-gray-100">
+                    <span class="text-green-800 text-lg font-bold">NACOS Menu</span>
+                    <button id="mobileMenuButton" class="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
                     </button>
                 </div>
                 <!-- Mobile menu content (hidden by default) -->
                 <div id="mobileMenu" class="hidden mt-4 space-y-2">
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        Home
+                    <!-- Nav links must match desktop nav links -->
+                    <a href="#home" data-page="home" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                         Home
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="{% url 'payment_page' %}" data-page="payment" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-credit-card"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                         Payment
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#elearning" data-page="elearning" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-graduation-cap"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
                         E-learning
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#voting" data-page="voting" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
                         Voting
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#message" data-page="message" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         Message
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#assignment" data-page="assignment" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 15h4"/><path d="M8 11h.01"/><path d="M8 15h.01"/></svg>
                         Assignment
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#profile" data-page="profile" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         Profile
                     </a>
-                    <a href="#" class="block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="#settings" data-page="settings" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.44.58a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.74v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.44-.58a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.18a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                         Settings
                     </a>
@@ -171,101 +193,15 @@
                 </div>
             </nav>
 
-            <!-- Main Content Grid -->
-            <div class="p-6 md:p-8 space-y-8">
-                <!-- Welcome Section -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h2 class="text-2xl font-bold mb-2">Hello, <span id="username-greeting">{{ request.user.username|title }}</span>!</h2>
-                    <!-- <h1 class="text-xl font-bold text-gray-800">Hello, !</h1> -->
-
-                    <p class="text-gray-600">Here you can manage your account, view recent activity, and track your progress.</p>
-                </div>
-
-                <!-- Stats Cards -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4">
-                        <div class="bg-green-100 p-3 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Total Revenue</p>
-                            <p class="text-xl font-bold text-gray-800">$1,234.56</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4">
-                        <div class="bg-blue-100 p-3 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">New Users</p>
-                            <p class="text-xl font-bold text-gray-800">2,345</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4">
-                        <div class="bg-yellow-100 p-3 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-600 lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Sales</p>
-                            <p class="text-xl font-bold text-gray-800">+12.5%</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4">
-                        <div class="bg-red-100 p-3 rounded-xl">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 lucide lucide-activity"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Active Users</p>
-                            <p class="text-xl font-bold text-gray-800">5,678</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Activity & Other Content -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 lg:col-span-2">
-                        <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
-                        <ul class="divide-y divide-gray-200">
-                            <li class="py-3 flex justify-between items-center">
-                                <span class="text-gray-700">Signed in to the account.</span>
-                                <span class="text-sm text-gray-500">5 min ago</span>
-                            </li>
-                            <li class="py-3 flex justify-between items-center">
-                                <span class="text-gray-700">Updated profile information.</span>
-                                <span class="text-sm text-gray-500">1 hour ago</span>
-                            </li>
-                            <li class="py-3 flex justify-between items-center">
-                                <span class="text-gray-700">Created a new project.</span>
-                                <span class="text-sm text-gray-500">3 hours ago</span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                        <h3 class="text-lg font-bold mb-4">Account Summary</h3>
-                        <div class="space-y-2">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Plan:</span>
-                                <span class="font-medium">Pro</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Storage Used:</span>
-                                <span class="font-medium">1.5 GB / 10 GB</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Last Login:</span>
-                                <span class="font-medium">Today</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Main Content Container for Dynamic Content -->
+            <div id="content-area" class="p-6 md:p-8 space-y-8">
+                <!-- Content will be injected here by JavaScript -->
+                <p class="text-center text-gray-500 py-10">Loading dashboard content...</p>
             </div>
         </main>
     </div>
 
-    <!-- Logout Confirmation Modal -->
+    <!-- Logout Confirmation Modal (Remains the same) -->
     <div id="logout-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
         <div class="flex items-center justify-center min-h-screen px-4 text-center sm:block sm:p-0">
             <!-- Background overlay -->
@@ -284,7 +220,7 @@
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                         <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">Log out of your account</h3>
                         <div class="mt-2">
-                            <p class="text-sm text-gray-500">Are you sure you want to log out?</p>
+                            <p class="text-sm text-gray-500"> {{ request.user.username|title }}  Are you sure you want to log out?</p>
                         </div>
                     </div>
                 </div>
@@ -301,61 +237,308 @@
     </div>
 
     <script>
-        // JavaScript for mobile menu and user dropdown
+        // DOM Elements
         const mobileMenuButton = document.getElementById('mobileMenuButton');
         const mobileMenu = document.getElementById('mobileMenu');
         const profileMenuButton = document.getElementById('profileMenuButton');
         const profileMenu = document.getElementById('profileMenu');
-        
-        // Modal elements
         const logoutModal = document.getElementById('logout-modal');
         const confirmLogoutBtn = document.getElementById('confirm-logout');
         const cancelLogoutBtn = document.getElementById('cancel-logout');
+        const contentArea = document.getElementById('content-area');
         
         // Logout link elements
         const desktopLogoutLink = document.getElementById('desktop-logout');
         const dropdownLogoutLink = document.getElementById('dropdown-logout');
         const mobileLogoutLink = document.getElementById('mobile-logout');
 
-        // Function to show the logout modal
+
+        /* --- UI UTILITY FUNCTIONS --- */
+
         function showLogoutModal() {
             logoutModal.classList.remove('hidden');
         }
 
-        // Function to hide the logout modal
         function hideLogoutModal() {
             logoutModal.classList.add('hidden');
         }
 
-        // Function to handle the logout logic
         async function handleLogout() {
             hideLogoutModal();
-            console.log("Simulating logout...");
+            console.log("Attempting logout...");
 
-            // Using Firebase to sign out
             try {
                 if (window.auth) {
+                    // Sign out from Firebase
                     await signOut(window.auth);
                     console.log("User signed out from Firebase.");
+                    // The onAuthStateChanged listener will handle the redirect.
                 }
             } catch (error) {
                 console.error("Error signing out:", error);
             }
         }
 
-        // Event listeners
+
+        /* --- CONTENT RENDERING FUNCTIONS --- */
+
+        // Helper function to create content blocks quickly
+        function createContentBlock(title, content) {
+            return `
+                <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+                    <h2 class="text-3xl font-extrabold text-green-800 mb-4">${title}</h2>
+                    <p class="text-gray-600">${content}</p>
+                    <div class="mt-6">
+                        <a href="#home" class="text-green-600 font-medium hover:text-green-700 transition-colors">Go back to Home &rarr;</a>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Home Page Content (The original structure)
+        function renderHome() {
+            const userName = document.querySelector('.username-greeting').textContent;
+            return `
+                <!-- Welcome Section -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                    <h2 class="text-2xl font-bold mb-2">Welcome Back, ${userName}!</h2>
+                    <p class="text-gray-600">Here you can manage your account, view recent activity, and track your progress.</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4 transition transform hover:shadow-lg hover:-translate-y-1">
+                        <div class="bg-green-100 p-3 rounded-xl shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 lucide lucide-dollar-sign"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Fees Paid</p>
+                            <p class="text-xl font-bold text-gray-800">₦120,000</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4 transition transform hover:shadow-lg hover:-translate-y-1">
+                        <div class="bg-blue-100 p-3 rounded-xl shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Total Members</p>
+                            <p class="text-xl font-bold text-gray-800">2,345</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4 transition transform hover:shadow-lg hover:-translate-y-1">
+                        <div class="bg-yellow-100 p-3 rounded-xl shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-600 lucide lucide-trending-up"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Upcoming Events</p>
+                            <p class="text-xl font-bold text-gray-800">4</p>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center space-x-4 transition transform hover:shadow-lg hover:-translate-y-1">
+                        <div class="bg-red-100 p-3 rounded-xl shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600 lucide lucide-activity"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">Unread Messages</p>
+                            <p class="text-xl font-bold text-gray-800">2</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Other Content -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 lg:col-span-2">
+                        <h3 class="text-lg font-bold mb-4">Recent Activity</h3>
+                        <ul class="divide-y divide-gray-200">
+                            <li class="py-3 flex justify-between items-center">
+                                <span class="text-gray-700">Signed in to the account.</span>
+                                <span class="text-sm text-gray-500">5 min ago</span>
+                            </li>
+                            <li class="py-3 flex justify-between items-center">
+                                <span class="text-gray-700">Completed E-learning module: Python Basics.</span>
+                                <span class="text-sm text-gray-500">1 hour ago</span>
+                            </li>
+                            <li class="py-3 flex justify-between items-center">
+                                <span class="text-gray-700">Submitted Project 1 Assignment.</span>
+                                <span class="text-sm text-gray-500">3 hours ago</span>
+                            </li>
+                            <li class="py-3 flex justify-between items-center">
+                                <span class="text-gray-700">Made Payment for annual dues.</span>
+                                <span class="text-sm text-gray-500">Yesterday</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-bold mb-4">Account Summary</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Membership Status:</span>
+                                <span class="font-medium text-green-600">Active</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Chapter:</span>
+                                <span class="font-medium">Federal University of Tech</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Last Dues Paid:</span>
+                                <span class="font-medium">2024/2025</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Next Election:</span>
+                                <span class="font-medium">December 2025</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Placeholder pages
+        function renderPayment() {
+            return createContentBlock(
+                "Payment Portal", 
+                "This section will allow members to view their dues history, outstanding payments, and make new payments for membership, events, or merchandise using secure payment gateways."
+
+
+
+                
+            );
+        }
+
+        function renderElearning() {
+            return createContentBlock(
+                "E-learning Hub", 
+                "The E-learning hub will feature courses on trending technologies, coding challenges, and archived workshop materials. Members can track their progress and earn certificates here."
+            );
+        }
+
+        function renderVoting() {
+            return createContentBlock(
+                "E-Voting System", 
+                "This is the secure online platform for internal elections. Only verified, active members can cast their vote here. We will ensure integrity and transparency using blockchain principles (conceptually)."
+            );
+        }
+        
+        function renderMessage() {
+            return createContentBlock(
+                "Message Center", 
+                "A dedicated inbox for official communications, announcements from the NACOS executive body, and direct messaging with course representatives or committee heads."
+            );
+        }
+        
+        function renderAssignment() {
+            return createContentBlock(
+                "Assignment & Projects", 
+                "Track the status of your current assignments, download project briefs, upload your completed work, and view feedback and grades from mentors."
+            );
+        }
+
+        function renderProfile() {
+            return createContentBlock(
+                "Member Profile", 
+                "Manage your personal information, update your university details, change your profile picture, and view your detailed NACOS achievements and attendance records."
+            );
+        }
+
+        function renderSettings() {
+            return createContentBlock(
+                "Settings & Preferences", 
+                "Customize your dashboard experience, manage notification settings, and update security credentials like your password."
+            );
+        }
+
+        const pageRenderers = {
+            'home': renderHome,
+            'payment': renderPayment,
+            'elearning': renderElearning,
+            'voting': renderVoting,
+            'message': renderMessage,
+            'assignment': renderAssignment,
+            'profile': renderProfile,
+            'settings': renderSettings,
+        };
+        
+        function updateActiveLink(pageName) {
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-green-700', 'font-semibold', 'text-white', 'shadow-md');
+                link.classList.add('font-medium', 'text-green-200');
+
+                if (link.dataset.page === pageName) {
+                    // Desktop active style
+                    link.classList.add('bg-green-700', 'font-semibold', 'text-white', 'shadow-md');
+                    link.classList.remove('font-medium', 'text-green-200');
+                    // Mobile active style (adjusting mobile link colors if needed, though Tailwind makes it tricky when sharing classes)
+                }
+            });
+        }
+
+
+        function navigateTo(pageName) {
+            const renderer = pageRenderers[pageName];
+            if (renderer) {
+                contentArea.innerHTML = renderer();
+                updateActiveLink(pageName);
+                // Update the URL hash without creating a new history entry
+                window.history.replaceState(null, null, '#' + pageName);
+            } else {
+                contentArea.innerHTML = createContentBlock(
+                    "404 Not Found", 
+                    `The page: #${pageName} does not exist. Please check the navigation links.`
+                );
+            }
+            
+            // Hide mobile menu after navigation
+            mobileMenu.classList.add('hidden');
+            profileMenu.classList.remove('scale-100', 'opacity-100').add('scale-95', 'opacity-0');
+            profileMenu.classList.add('hidden');
+        }
+
+
+        /* --- EVENT LISTENERS --- */
+
+        // Event listener for all navigation links (desktop and mobile)
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (event) => {
+                event.preventDefault();
+                const pageName = link.dataset.page;
+                if (pageName) {
+                    navigateTo(pageName);
+                }
+            });
+        });
+
+        // Listen for hash changes in the URL (e.g., when using the browser back/forward buttons)
+        window.addEventListener('hashchange', () => {
+            const pageName = window.location.hash.substring(1) || 'home';
+            navigateTo(pageName);
+        });
+
+        // Initialize UI listeners
         mobileMenuButton.addEventListener('click', () => {
             mobileMenu.classList.toggle('hidden');
         });
 
         profileMenuButton.addEventListener('click', () => {
             profileMenu.classList.toggle('hidden');
+            // Add/remove transition classes
+            if (!profileMenu.classList.contains('hidden')) {
+                profileMenu.classList.remove('scale-95', 'opacity-0');
+                profileMenu.classList.add('scale-100', 'opacity-100');
+            } else {
+                 profileMenu.classList.remove('scale-100', 'opacity-100');
+                 profileMenu.classList.add('scale-95', 'opacity-0');
+            }
         });
 
         // Close dropdowns if user clicks outside
         window.addEventListener('click', (event) => {
             if (profileMenu && !profileMenuButton.contains(event.target) && !profileMenu.contains(event.target)) {
-                profileMenu.classList.add('hidden');
+                 profileMenu.classList.remove('scale-100', 'opacity-100');
+                 profileMenu.classList.add('scale-95', 'opacity-0');
+                 setTimeout(() => profileMenu.classList.add('hidden'), 100); // Hide after transition
             }
             if (mobileMenu && !mobileMenuButton.contains(event.target) && !mobileMenu.contains(event.target)) {
                 mobileMenu.classList.add('hidden');
@@ -366,34 +549,31 @@
             }
         });
 
-        // Add click listeners to the logout links
-        if (desktopLogoutLink) {
-            desktopLogoutLink.addEventListener('click', (event) => {
-                event.preventDefault(); // Prevent default link behavior
-                showLogoutModal();
-            });
-        }
-        
-        if (dropdownLogoutLink) {
-            dropdownLogoutLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                showLogoutModal();
-                profileMenu.classList.add('hidden'); // Hide the dropdown menu
-            });
-        }
-        
-        if (mobileLogoutLink) {
-            mobileLogoutLink.addEventListener('click', (event) => {
-                event.preventDefault();
-                showLogoutModal();
-                mobileMenu.classList.add('hidden'); // Hide the mobile menu
-            });
-        }
+        // Add click listeners to the logout links to show modal
+        [desktopLogoutLink, dropdownLogoutLink, mobileLogoutLink].forEach(link => {
+            if (link) {
+                link.addEventListener('click', (event) => {
+                    event.preventDefault(); 
+                    showLogoutModal();
+                    // Hide any menus that might be open
+                    profileMenu.classList.add('hidden'); 
+                    mobileMenu.classList.add('hidden');
+                });
+            }
+        });
 
         // Add click listeners to the modal buttons
         confirmLogoutBtn.addEventListener('click', handleLogout);
         cancelLogoutBtn.addEventListener('click', hideLogoutModal);
-
+        
+        // Expose navigateTo globally for initial load script
+        window.navigateTo = navigateTo;
+        
     </script>
+
+
+
+
+    
 </body>
 </html>

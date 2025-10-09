@@ -4,6 +4,7 @@ from django.contrib import messages
 from .forms import SignUpForm, SignInForm
 from django.contrib.auth.decorators import login_required
 
+
 def signin_view(request):
     """Handles login (landing page)."""
     if request.user.is_authenticated:
@@ -51,3 +52,14 @@ def logout_view(request):
     logout(request)
     messages.info(request, "You have been logged out.")
     return redirect('signin')
+
+
+def payment_view(request):
+    """
+    Renders the custom payment processing page.
+    This page contains the HTML/JS logic for the simulated payment flow.
+    """
+    # You can pass context here if needed, but for now, we just render the page.
+    return render(request, 'payment_page.html', {})
+
+
