@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ election.title }} - NACOS Voting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'election_list' %}" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Elections
+            </a>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">{{ election.title }}</h1>
+            <p class="text-gray-600">{{ election.description }}</p>
+            
+            <!-- Election Status -->
+            <div class="mt-4 flex items-center space-x-4">
+                <span class="px-4 py-2 rounded-full text-sm font-semibold
+                    {% if election.status == 'active' %}bg-green-100 text-green-800
+                    {% elif election.status == 'upcoming' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ election.get_status_display }}
+                </span>
+                <span class="text-sm text-gray-600">
+                    {% if election.status == 'active' %}
+                        Ends: {{ election.end_date|date:"M d, Y g:i A" }}
+                    {% elif election.status == 'upcoming' %}
+                        Starts: {{ election.start_date|date:"M d, Y g:i A" }}
+                    {% else %}
+                        Ended: {{ election.end_date|date:"M d, Y g:i A" }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Django Messages -->
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div class="p-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-800 border border-green-300{% elif message.tags == 'error' %}bg-red-100 text-red-800 border border-red-300{% else %}bg-blue-100 text-blue-800 border border-blue-300{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if has_voted %}
+        <!-- Already Voted Message -->
+        <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg mb-8">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 mr-3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <div>
+                    <h3 class="text-lg font-bold text-green-800">You have already voted!</h3>
+                    <p class="text-green-700">Thank you for participating in this election.</p>
+                </div>
+            </div>
+            
+            <!-- Show user's votes -->
+            <div class="mt-4 pt-4 border-t border-green-200">
+                <h4 class="font-semibold text-green-800 mb-2">Your Votes:</h4>
+                <div class="space-y-2">
+                    {% for position_key, candidate in user_votes.items %}
+                    <div class="flex items-center justify-between bg-white p-3 rounded">
+                        <span class="text-gray-700">{{ candidate.position.get_name_display }}</span>
+                        <span class="font-semibold text-green-700">{{ candidate.name }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- View Results Button -->
+        {% if election.show_results or election.results_published %}
+        <div class="text-center mb-8">
+            <a href="{% url 'election_results' election.id %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                View Live Results
+            </a>
+        </div>
+        {% endif %}
+
+        {% elif can_vote %}
+        <!-- Voting Form -->
+        <form id="voting-form" method="POST" action="{% url 'cast_vote' election.id %}">
+            {% csrf_token %}
+            
+            <div class="space-y-8">
+                {% for position in positions %}
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ position.get_name_display }}</h2>
+                    <p class="text-gray-600 mb-6">Select one candidate for this position</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {% for candidate in position.get_candidates %}
+                        <label class="candidate-card cursor-pointer">
+                            <input type="radio" name="position_{{ position.id }}" value="{{ candidate.id }}" class="hidden candidate-radio" required>
+                            <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-green-500 transition-all hover:shadow-md">
+                                <div class="flex items-start space-x-3">
+                                    <div class="flex-shrink-0 w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                        {% if candidate.profile_image %}
+                                        <img src="{{ candidate.profile_image.url }}" alt="{{ candidate.name }}" class="w-12 h-12 rounded-full object-cover">
+                                        {% else %}
+                                        <span class="text-green-600 font-bold text-xl">{{ candidate.name.0 }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1">
+                                        <h3 class="font-bold text-gray-800">{{ candidate.name }}</h3>
+                                        <p class="text-sm text-gray-600">{{ candidate.registration_number }}</p>
+                                        {% if candidate.level %}
+                                        <p class="text-xs text-gray-500">{{ candidate.level }}</p>
+                                        {% endif %}
+                                        {% if candidate.manifesto %}
+                                        <p class="text-sm text-gray-700 mt-2 line-clamp-3">{{ candidate.manifesto|truncatewords:20 }}</p>
+                                        <a href="{% url 'candidate_detail' candidate.id %}" class="text-green-600 text-sm hover:underline mt-1 inline-block">Read full manifesto →</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="checkmark-indicator hidden mt-3 flex items-center text-green-600">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="mr-2"><polyline points="20 6 9 17 4 12"/></svg>
+                                    <span class="font-semibold">Selected</span>
+                                </div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Submit Button -->
+            <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">Ready to submit your vote?</h3>
+                        <p class="text-sm text-gray-600">Review your selections before submitting. This action cannot be undone.</p>
+                    </div>
+                    <button type="submit" id="submit-btn" class="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition-colors shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed">
+                        <span id="submit-text">Submit Vote</span>
+                        <span id="submit-loader" class="hidden">Submitting...</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        {% else %}
+        <!-- Cannot Vote Message -->
+        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-600 mr-3"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                <div>
+                    <h3 class="text-lg font-bold text-yellow-800">Voting is not currently available</h3>
+                    <p class="text-yellow-700">
+                        {% if election.status == 'upcoming' %}
+                        This election hasn't started yet.
+                        {% elif election.status == 'closed' %}
+                        This election has ended.
+                        {% else %}
+                        You are not eligible to vote at this time.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- View Results Link (if available) -->
+        {% if not has_voted and election.show_results %}
+        <div class="text-center mt-8">
+            <a href="{% url 'election_results' election.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
+                View Live Results →
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Handle candidate selection visual feedback
+        document.querySelectorAll('.candidate-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Remove selection from siblings
+                const siblings = this.closest('.grid').querySelectorAll('.candidate-card');
+                siblings.forEach(card => {
+                    card.querySelector('div > div').classList.remove('border-green-500', 'bg-green-50');
+                    card.querySelector('.checkmark-indicator').classList.add('hidden');
+                });
+                
+                // Add selection to current
+                const card = this.closest('.candidate-card');
+                card.querySelector('div > div').classList.add('border-green-500', 'bg-green-50');
+                card.querySelector('.checkmark-indicator').classList.remove('hidden');
+            });
+        });
+
+        // Handle form submission
+        document.getElementById('voting-form')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submit-btn');
+            const submitText = document.getElementById('submit-text');
+            const submitLoader = document.getElementById('submit-loader');
+            
+            // Confirm submission
+            if (!confirm('Are you sure you want to submit your vote? This action cannot be undone.')) {
+                return;
+            }
+            
+            // Disable button
+            submitBtn.disabled = true;
+            submitText.classList.add('hidden');
+            submitLoader.classList.remove('hidden');
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                } else {
+                    alert(data.error || 'Vote submission failed');
+                    submitBtn.disabled = false;
+                    submitText.classList.remove('hidden');
+                    submitLoader.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                submitBtn.disabled = false;
+                submitText.classList.remove('hidden');
+                submitLoader.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

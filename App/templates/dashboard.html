@@ -87,10 +87,12 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-graduation-cap"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
                     <span>E-learning</span>
                 </a>
-                <a href="#voting" data-page="voting" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+
+                <a href="{% url 'election_list' %}"  class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
                     <span>Voting</span>
                 </a>
+
                 <a href="#message" data-page="message" class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     <span>Message</span>
@@ -264,20 +266,25 @@
         }
 
         async function handleLogout() {
-            hideLogoutModal();
-            console.log("Attempting logout...");
+    hideLogoutModal();
+    console.log("Attempting logout...");
 
-            try {
-                if (window.auth) {
-                    // Sign out from Firebase
-                    await signOut(window.auth);
-                    console.log("User signed out from Firebase.");
-                    // The onAuthStateChanged listener will handle the redirect.
-                }
-            } catch (error) {
-                console.error("Error signing out:", error);
-            }
+    try {
+        // Sign out from Firebase first
+        if (window.auth) {
+            await signOut(window.auth);
+            console.log("User signed out from Firebase.");
         }
+        
+        // Then logout from Django
+        window.location.href = "{% url 'logout' %}";
+        
+    } catch (error) {
+        console.error("Error signing out:", error);
+        // Even if Firebase logout fails, still logout from Django
+        window.location.href = "{% url 'logout' %}";
+    }
+}
 
 
         /* --- CONTENT RENDERING FUNCTIONS --- */

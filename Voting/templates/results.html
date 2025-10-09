@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ election.title }} - Results</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'election_list' %}" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Elections
+            </a>
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">{{ election.title }} - Results</h1>
+            <p class="text-gray-600">{{ election.description }}</p>
+            
+            <div class="mt-4 flex items-center space-x-4">
+                <span class="px-4 py-2 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
+                    {% if election.results_published %}Final Results{% else %}Live Results{% endif %}
+                </span>
+                <span class="text-sm text-gray-600">Total Voters: <strong>{{ total_voters }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Results by Position -->
+        <div class="space-y-8">
+            {% for result in results_data %}
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">{{ result.position.get_name_display }}</h2>
+                <p class="text-sm text-gray-600 mb-6">Total Votes: <strong>{{ result.total_votes }}</strong></p>
+                
+                <div class="space-y-4">
+                    {% for candidate_data in result.candidates %}
+                    <div class="border border-gray-200 rounded-lg p-4 {% if forloop.first %}border-green-500 bg-green-50{% endif %}">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-3">
+                                {% if forloop.first %}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500"><path d="m15.477 12.89 1.515 8.526a.5.5 0 0 1-.81.47l-3.58-2.687a1 1 0 0 0-1.197 0l-3.586 2.686a.5.5 0 0 1-.81-.469l1.514-8.526"/><circle cx="12" cy="8" r="6"/></svg>
+                                {% endif %}
+                                <div>
+                                    <h3 class="font-bold text-lg text-gray-800">{{ candidate_data.candidate.name }}</h3>
+                                    <p class="text-sm text-gray-600">{{ candidate_data.candidate.registration_number }}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-bold text-green-600">{{ candidate_data.votes }}</p>
+                                <p class="text-sm text-gray-600">{{ candidate_data.percentage }}%</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-200 rounded-full h-3 mt-3">
+                            <div class="bg-green-600 h-3 rounded-full transition-all duration-500" style="width: {{ candidate_data.percentage }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Live Results Note -->
+        {% if election.show_results and not election.results_published %}
+        <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <p class="text-blue-800">
+                <strong>Note:</strong> These are live results and may change as more votes are cast.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Auto-refresh every 30 seconds if election is active and showing live results
+        {% if election.is_active and election.show_results %}
+        setTimeout(function() {
+            location.reload();
+        }, 30000);
+        {% endif %}
+    </script>
+</body>
+</html>

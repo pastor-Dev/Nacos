@@ -63,3 +63,13 @@ def payment_view(request):
     return render(request, 'payment_page.html', {})
 
 
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def logout_view(request):
+    """Logout user from Django session"""
+    logout(request)
+    return redirect('signin')  # Change 'login' to your login page URL name
