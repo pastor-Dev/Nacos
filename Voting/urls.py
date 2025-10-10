@@ -6,7 +6,7 @@ urlpatterns = [
     # Election pages
     path('elections/', views.election_List, name='election_list'),
     path('elections/<int:election_id>/', views.election_detail, name='election_details'),
-    path('elections/<int:election_id>/results/', views.election_results, name='election_results'),
+    path('elections/<int:election_id>/results/', views.election_results, name='results'),
     
     # Voting
     path('elections/<int:election_id>/vote/', views.cast_vote, name='cast_vote'),

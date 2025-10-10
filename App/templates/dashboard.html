@@ -88,7 +88,7 @@
                     <span>E-learning</span>
                 </a>
 
-                <a href="{% url 'election_list' %}"  class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
+                <a href="{% url 'election_list' %}" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
                     <span>Voting</span>
                 </a>
@@ -422,12 +422,12 @@
             );
         }
 
-        function renderVoting() {
-            return createContentBlock(
-                "E-Voting System", 
-                "This is the secure online platform for internal elections. Only verified, active members can cast their vote here. We will ensure integrity and transparency using blockchain principles (conceptually)."
-            );
-        }
+        // function renderVoting() {
+        //     return createContentBlock(
+        //         "E-Voting System", 
+        //         "This is the secure online platform for internal elections. Only verified, active members can cast their vote here. We will ensure integrity and transparency using blockchain principles (conceptually)."
+        //     );
+        // }
         
         function renderMessage() {
             return createContentBlock(
@@ -461,7 +461,7 @@
             'home': renderHome,
             'payment': renderPayment,
             'elearning': renderElearning,
-            'voting': renderVoting,
+            // 'voting': renderVoting,
             'message': renderMessage,
             'assignment': renderAssignment,
             'profile': renderProfile,

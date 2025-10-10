@@ -76,7 +76,7 @@
         <!-- View Results Button -->
         {% if election.show_results or election.results_published %}
         <div class="text-center mb-8">
-            <a href="{% url 'election_results' election.id %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+            <a href="{% url 'results' election.id %}" class="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
                 View Live Results
             </a>
         </div>
@@ -169,7 +169,7 @@
         <!-- View Results Link (if available) -->
         {% if not has_voted and election.show_results %}
         <div class="text-center mt-8">
-            <a href="{% url 'election_results' election.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
+            <a href="{% url 'results' election.id %}" class="text-blue-600 hover:text-blue-700 font-medium">
                 View Live Results →
             </a>
         </div>
