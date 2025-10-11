@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Log - NACOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-800">Activity Log</h1>
+            <p class="text-gray-600">View your recent account activity</p>
+            <a href="{% url 'profile_view' %}" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center mt-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Profile
+            </a>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Login History -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Login History</h2>
+                {% if login_history %}
+                <div class="space-y-3">
+                    {% for login in login_history %}
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ login.ip_address }}</p>
+                                <p class="text-sm text-gray-600">{{ login.login_time|date:"M d, Y g:i A" }}</p>
+                            </div>
+                        </div>
+                        {% if login.is_active %}
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">Active</span>
+                        {% else %}
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm font-semibold rounded-full">Inactive</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No login history available</p>
+                {% endif %}
+            </div>
+
+            <!-- Payment History -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Recent Payments</h2>
+                {% if payments %}
+                <div class="space-y-3">
+                    {% for payment in payments %}
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ payment.payment_type.name }}</p>
+                                <p class="text-sm text-gray-600">₦{{ payment.amount }} • {{ payment.created_at|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 {% if payment.status == 'success' %}bg-green-100 text-green-800{% elif payment.status == 'failed' %}bg-red-100 text-red-800{% else %}bg-yellow-100 text-yellow-800{% endif %} text-sm font-semibold rounded-full uppercase">
+                            {{ payment.status }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No payment history</p>
+                {% endif %}
+            </div>
+
+            <!-- Voting History -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Voting History</h2>
+                {% if votes %}
+                <div class="space-y-3">
+                    {% for vote in votes %}
+                    <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mr-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-800">{{ vote.candidate.position.get_name_display }}</p>
+                                <p class="text-sm text-gray-600">{{ vote.candidate.position.election.title }} • {{ vote.timestamp|date:"M d, Y" }}</p>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">Voted</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No voting history</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

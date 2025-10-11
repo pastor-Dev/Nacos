@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Account - NACOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-xl shadow-2xl p-8 border-2 border-red-200">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+                </div>
+                <h1 class="text-3xl font-bold text-red-600 mb-2">Delete Account</h1>
+                <p class="text-gray-600">This action cannot be undone</p>
+            </div>
+
+            {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                <div class="p-4 rounded-lg bg-red-100 text-red-800">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <h3 class="font-bold text-red-800 mb-2">Warning!</h3>
+                <ul class="text-sm text-red-700 space-y-1">
+                    <li>• All your data will be permanently deleted</li>
+                    <li>• Your payment history will be lost</li>
+                    <li>• Your voting records will be removed</li>
+                    <li>• This action cannot be reversed</li>
+                </ul>
+            </div>
+
+            <form method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete your account? This cannot be undone!');" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Enter your password to confirm</label>
+                    <input type="password" id="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="confirm_delete" class="block text-sm font-medium text-gray-700 mb-2">Type "DELETE" to confirm</label>
+                    <input type="text" id="confirm_delete" name="confirm_delete" required placeholder="DELETE" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent uppercase">
+                </div>
+
+                <button type="submit" class="w-full bg-red-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md">
+                    Delete My Account Permanently
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <a href="{% url 'profile_view' %}" class="text-gray-600 hover:text-gray-700 font-medium">
+                    ← Cancel and Go Back
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
