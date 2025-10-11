@@ -134,3 +134,7 @@ LOGIN_URL = 'login'  # for @login_required
 # Add at the bottom of settings.py
 PAYSTACK_PUBLIC_KEY = 'pk_test_888eecafe1090351dc7aff53dfb8b45af27cb691'  # Get from Paystack dashboard
 PAYSTACK_SECRET_KEY = 'sk_test_7aa554fca3703d55303f05a4a33fbe2c01528a15'  # Get from Paystack dashboard
+
+# Media files configuration
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
