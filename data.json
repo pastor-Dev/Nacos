@@ -1,0 +1,10 @@
+[
+{
+  "model": "admin.logentry",
+  "pk": 1,
+  "fields": {
+    "action_time": "2025-10-09T08:07:16.099Z",
+    "user": 12,
+    "content_type": 8,
+    "object_id": "1",
+    "object_repr": 
