@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Learning - NACOS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="mb-8 flex items-center justify-between">
+            <div>
+                <h1 class="text-4xl font-bold text-gray-800">📚 E-Learning Hub</h1>
+                <p class="text-gray-600">Access classes, resources, and study materials</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="text-green-600 hover:text-green-700 font-medium inline-flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Today's Classes Alert -->
+        {% if today_classes %}
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-6 mb-8 shadow-xl">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-2xl font-bold mb-2">🎓 Classes Today!</h2>
+                    <p class="opacity-90">You have {{ today_classes|length }} class(es) scheduled for today</p>
+                </div>
+                <a href="{% url 'class_schedule' %}?status=today" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors">
+                    View Schedule
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Upcoming Classes</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ upcoming_classes|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Available Resources</p>
+                        <p class="text-3xl font-bold text-green-600">{{ recent_resources|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Courses</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ courses|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm">Categories</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ categories|length }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-orange-600"><path d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z"/><path d="m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9"/><path d="M12 3v6"/></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <a href="{% url 'class_schedule' %}" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border-t-4 border-blue-500">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">View Schedule</h3>
+                        <p class="text-sm text-gray-600">See all upcoming classes</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="{% url 'resource_library' %}" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border-t-4 border-green-500">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">Browse Resources</h3>
+                        <p class="text-sm text-gray-600">Download study materials</p>
+                    </div>
+                </div>
+            </a>
+            
+            <a href="{% url 'my_downloads' %}" class="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border-t-4 border-purple-500">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-lg text-gray-800">My Downloads</h3>
+                        <p class="text-sm text-gray-600">View download history</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Upcoming Classes -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">📅 Upcoming Classes</h2>
+                    <a href="{% url 'class_schedule' %}" class="text-blue-600 hover:text-blue-700 font-medium text-sm">View All →</a>
+                </div>
+                
+                {% if upcoming_classes %}
+                <div class="space-y-4">
+                    {% for class in upcoming_classes|slice:":5" %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <h3 class="font-bold text-gray-800">{{ class.title }}</h3>
+                                <p class="text-sm text-gray-600">{{ class.course.code }} - {{ class.course.name }}</p>
+                                <p class="text-sm text-gray-500 mt-1">👨‍🏫 {{ class.lecturer }}</p>
+                            </div>
+                            {% if class.is_today %}
+                            <span class="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">TODAY</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                                <span>📅 {{ class.date|date:"M d, Y" }}</span>
+                                <span>🕐 {{ class.start_time|time:"g:i A" }}</span>
+                            </div>
+                            <a href="{% url 'join_class' class.id %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                                Join Class
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-300 mb-4"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    <p class="text-gray-500">No upcoming classes scheduled</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent Resources -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">📚 Recent Resources</h2>
+                    <a href="{% url 'resource_library' %}" class="text-green-600 hover:text-green-700 font-medium text-sm">View All →</a>
+                </div>
+                
+                {% if recent_resources %}
+                <div class="space-y-4">
+                    {% for resource in recent_resources %}
+                    <a href="{% url 'resource_detail' resource.id %}" class="block border border-gray-200 rounded-lg p-4 hover:border-green-500 hover:shadow-md transition-all">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-red-100 rounded flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-600"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-semibold text-gray-800 truncate">{{ resource.title }}</h3>
+                                <p class="text-sm text-gray-600">{{ resource.course.code }}</p>
+                                <div class="flex items-center space-x-3 mt-2 text-xs text-gray-500">
+                                    <span>{{ resource.category.icon }} {{ resource.category.name }}</span>
+                                    <span>📥 {{ resource.download_count }} downloads</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-12">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-300 mb-4"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                    <p class="text-gray-500">No resources available yet</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Browse by Course -->
+        {% if courses %}
+        <div class="mt-8 bg-white rounded-xl shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">📖 Browse by Course</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {% for course in courses %}
+                <a href="{% url 'course_resources' course.id %}" class="border border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:shadow-md transition-all">
+                    <div class="flex items-center space-x-3 mb-2">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span class="text-blue-600 font-bold text-sm">{{ course.code|slice:":3" }}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-gray-800 text-sm">{{ course.code }}</p>
+                            <p class="text-xs text-gray-600">{{ course.level }} Level</p>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-700 line-clamp-2">{{ course.name }}</p>
+                    <p class="text-xs text-gray-500 mt-2">{{ course.resource_count }} resource(s)</p>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

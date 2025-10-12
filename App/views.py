@@ -286,3 +286,270 @@ def log_user_login(request, user):
         user_agent=user_agent,
         is_active=True
     )
+
+
+# ============================================
+# E-LEARNING VIEWS - ADD THIS TO App/views.py
+# ============================================
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404
+from django.contrib import messages
+from django.db.models import Q, Count
+from django.utils import timezone
+from .models import Course, ClassSchedule, Resource, ResourceCategory, ResourceDownload, ClassAttendance
+
+
+def get_client_ip(request):
+    """Get client IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+@login_required
+def elearning_home(request):
+    """E-Learning home page with schedule and resources overview"""
+    # Get upcoming classes (next 7 days)
+    today = timezone.now().date()
+    upcoming_classes = ClassSchedule.objects.filter(
+        date__gte=today,
+        is_completed=False
+    ).select_related('course')[:10]
+    
+    # Get today's classes
+    today_classes = ClassSchedule.objects.filter(
+        date=today,
+        is_completed=False
+    ).select_related('course')
+    
+    # Get recent resources
+    recent_resources = Resource.objects.filter(
+        is_active=True
+    ).select_related('course', 'category')[:6]
+    
+    # Get popular resources (most downloaded)
+    popular_resources = Resource.objects.filter(
+        is_active=True
+    ).select_related('course', 'category').order_by('-download_count')[:6]
+    
+    # Get resource categories
+    categories = ResourceCategory.objects.annotate(
+        resource_count=Count('resources')
+    )
+    
+    # Get courses
+    courses = Course.objects.filter(is_active=True).annotate(
+        resource_count=Count('resources')
+    )
+    
+    context = {
+        'upcoming_classes': upcoming_classes,
+        'today_classes': today_classes,
+        'recent_resources': recent_resources,
+        'popular_resources': popular_resources,
+        'categories': categories,
+        'courses': courses,
+    }
+    return render(request, 'elearning/home.html', context)
+
+
+@login_required
+def class_schedule(request):
+    """View all class schedules"""
+    # Filter options
+    level_filter = request.GET.get('level', '')
+    course_filter = request.GET.get('course', '')
+    status_filter = request.GET.get('status', 'upcoming')
+    
+    # Base query
+    classes = ClassSchedule.objects.select_related('course')
+    
+    # Apply filters
+    if level_filter:
+        classes = classes.filter(course__level=level_filter)
+    
+    if course_filter:
+        classes = classes.filter(course__id=course_filter)
+    
+    # Status filter
+    today = timezone.now().date()
+    if status_filter == 'upcoming':
+        classes = classes.filter(date__gte=today, is_completed=False)
+    elif status_filter == 'past':
+        classes = classes.filter(Q(date__lt=today) | Q(is_completed=True))
+    elif status_filter == 'today':
+        classes = classes.filter(date=today, is_completed=False)
+    
+    # Get filter options
+    courses = Course.objects.filter(is_active=True)
+    levels = Course.objects.values_list('level', flat=True).distinct()
+    
+    context = {
+        'classes': classes,
+        'courses': courses,
+        'levels': levels,
+        'selected_level': level_filter,
+        'selected_course': course_filter,
+        'selected_status': status_filter,
+    }
+    return render(request, 'elearning/schedule.html', context)
+
+
+@login_required
+def join_class(request, class_id):
+    """Join a class and track attendance"""
+    class_schedule = get_object_or_404(ClassSchedule, id=class_id)
+    
+    # Track attendance
+    ClassAttendance.objects.get_or_create(
+        class_schedule=class_schedule,
+        user=request.user
+    )
+    
+    # Redirect to meeting link
+    messages.success(request, f'Joining {class_schedule.title}...')
+    return redirect(class_schedule.meeting_link)
+
+
+@login_required
+def resource_library(request):
+    """Browse all resources"""
+    # Search and filter
+    search_query = request.GET.get('search', '')
+    level_filter = request.GET.get('level', '')
+    course_filter = request.GET.get('course', '')
+    category_filter = request.GET.get('category', '')
+    
+    # Base query
+    resources = Resource.objects.filter(is_active=True).select_related('course', 'category', 'uploaded_by')
+    
+    # Search
+    if search_query:
+        resources = resources.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(course__name__icontains=search_query)
+        )
+    
+    # Filters
+    if level_filter:
+        resources = resources.filter(course__level=level_filter)
+    
+    if course_filter:
+        resources = resources.filter(course__id=course_filter)
+    
+    if category_filter:
+        resources = resources.filter(category__id=category_filter)
+    
+    # Get filter options
+    courses = Course.objects.filter(is_active=True)
+    categories = ResourceCategory.objects.all()
+    levels = Course.objects.values_list('level', flat=True).distinct()
+    
+    context = {
+        'resources': resources,
+        'courses': courses,
+        'categories': categories,
+        'levels': levels,
+        'search_query': search_query,
+        'selected_level': level_filter,
+        'selected_course': course_filter,
+        'selected_category': category_filter,
+    }
+    return render(request, 'elearning/resources.html', context)
+
+
+@login_required
+def download_resource(request, resource_id):
+    """Download a resource file"""
+    resource = get_object_or_404(Resource, id=resource_id, is_active=True)
+    
+    # Track download
+    ResourceDownload.objects.create(
+        resource=resource,
+        user=request.user,
+        ip_address=get_client_ip(request)
+    )
+    
+    # Increment counter
+    resource.increment_downloads()
+    
+    # Serve file
+    try:
+        response = FileResponse(resource.file.open('rb'))
+        response['Content-Disposition'] = f'attachment; filename="{resource.file.name.split("/")[-1]}"'
+        return response
+    except FileNotFoundError:
+        messages.error(request, 'File not found')
+        return redirect('resource_library')
+
+
+@login_required
+def resource_detail(request, resource_id):
+    """View resource details"""
+    resource = get_object_or_404(Resource, id=resource_id, is_active=True)
+    
+    # Check if user has downloaded this resource
+    has_downloaded = ResourceDownload.objects.filter(
+        resource=resource,
+        user=request.user
+    ).exists()
+    
+    # Get related resources
+    related_resources = Resource.objects.filter(
+        course=resource.course,
+        is_active=True
+    ).exclude(id=resource_id)[:5]
+    
+    context = {
+        'resource': resource,
+        'has_downloaded': has_downloaded,
+        'related_resources': related_resources,
+    }
+    return render(request, 'elearning/resource_detail.html', context)
+
+
+@login_required
+def my_downloads(request):
+    """View user's download history"""
+    downloads = ResourceDownload.objects.filter(
+        user=request.user
+    ).select_related('resource', 'resource__course').order_by('-downloaded_at')
+    
+    context = {
+        'downloads': downloads,
+    }
+    return render(request, 'elearning/my_downloads.html', context)
+
+
+@login_required
+def course_resources(request, course_id):
+    """View all resources for a specific course"""
+    course = get_object_or_404(Course, id=course_id, is_active=True)
+    
+    resources = Resource.objects.filter(
+        course=course,
+        is_active=True
+    ).select_related('category', 'uploaded_by')
+    
+    # Get course classes
+    upcoming_classes = ClassSchedule.objects.filter(
+        course=course,
+        date__gte=timezone.now().date(),
+        is_completed=False
+    )[:5]
+    
+    context = {
+        'course': course,
+        'resources': resources,
+        'upcoming_classes': upcoming_classes,
+    }
+    return render(request, 'elearning/course_detail.html', context)
+
+
+# END OF E-LEARNING VIEWS

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    user = models.OneToOneField(User, on_delete=models.CASCADE,related_name='profile')
     level = models.CharField(max_length=100, blank=True)
     department = models.CharField(max_length=100, default="Computer Science")
 
@@ -25,7 +25,7 @@ import sys
 
 class UserProfile(models.Model):
     """Extended user profile information"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='user_profile')
     
     # Personal Information
     bio = models.TextField(max_length=500, blank=True, help_text="Tell us about yourself")
@@ -173,3 +173,181 @@ def save_user_profile(sender, instance, **kwargs):
     if hasattr(instance, 'preferences'):
         instance.preferences.save()
 
+
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
+from django.utils import timezone
+
+
+class Course(models.Model):
+    """Courses/Subjects in the department"""
+    code = models.CharField(max_length=20, unique=True, help_text="e.g., CSC201")
+    name = models.CharField(max_length=200, help_text="e.g., Introduction to Programming")
+    level = models.CharField(max_length=10, choices=[
+        ('100', '100 Level'),
+        ('200', '200 Level'),
+        ('300', '300 Level'),
+        ('400', '400 Level'),
+        ('500', '500 Level'),
+    ])
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['level', 'code']
+    
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class ClassSchedule(models.Model):
+    """Scheduled classes with Zoom links"""
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='classes')
+    title = models.CharField(max_length=200, help_text="e.g., Week 5: Data Structures")
+    description = models.TextField(blank=True, help_text="What will be covered in this class")
+    
+    # Schedule
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    
+    # Zoom/Meeting Link
+    meeting_link = models.URLField(help_text="Zoom, Google Meet, or any meeting link")
+    meeting_password = models.CharField(max_length=50, blank=True, help_text="Optional meeting password")
+    
+    # Metadata
+    lecturer = models.CharField(max_length=200, help_text="Lecturer name")
+    is_completed = models.BooleanField(default=False, help_text="Mark as completed after class")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-date', '-start_time']
+        verbose_name = "Class Schedule"
+        verbose_name_plural = "Class Schedules"
+    
+    def __str__(self):
+        return f"{self.course.code} - {self.title} ({self.date})"
+    
+    def is_upcoming(self):
+        """Check if class is in the future"""
+        now = timezone.now()
+        class_datetime = timezone.make_aware(
+            timezone.datetime.combine(self.date, self.start_time)
+        )
+        return class_datetime > now
+    
+    def is_today(self):
+        """Check if class is today"""
+        return self.date == timezone.now().date()
+    
+    def get_status(self):
+        """Get class status"""
+        if self.is_completed:
+            return 'completed'
+        elif self.is_today():
+            return 'today'
+        elif self.is_upcoming():
+            return 'upcoming'
+        else:
+            return 'past'
+
+
+class ResourceCategory(models.Model):
+    """Categories for resources (Past Questions, Handouts, etc.)"""
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=50, default='📄', help_text="Emoji icon")
+    order = models.IntegerField(default=0, help_text="Display order")
+    
+    class Meta:
+        ordering = ['order', 'name']
+        verbose_name_plural = "Resource Categories"
+    
+    def __str__(self):
+        return self.name
+
+
+class Resource(models.Model):
+    """Learning resources (PDFs, documents, etc.)"""
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    
+    # Categorization
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='resources')
+    category = models.ForeignKey(ResourceCategory, on_delete=models.SET_NULL, null=True, related_name='resources')
+    
+    # File
+    file = models.FileField(
+        upload_to='resources/%Y/%m/',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip'])],
+        help_text="Allowed: PDF, DOC, DOCX, PPT, PPTX, TXT, ZIP"
+    )
+    file_size = models.IntegerField(default=0, help_text="File size in bytes")
+    
+    # Metadata
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    upload_date = models.DateTimeField(auto_now_add=True)
+    download_count = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-upload_date']
+    
+    def __str__(self):
+        return f"{self.title} ({self.course.code})"
+    
+    def get_file_extension(self):
+        """Get file extension"""
+        return self.file.name.split('.')[-1].upper()
+    
+    def get_file_size_mb(self):
+        """Get file size in MB"""
+        return round(self.file_size / (1024 * 1024), 2)
+    
+    def increment_downloads(self):
+        """Increment download count"""
+        self.download_count += 1
+        self.save(update_fields=['download_count'])
+
+
+class ResourceDownload(models.Model):
+    """Track resource downloads"""
+    resource = models.ForeignKey(Resource, on_delete=models.CASCADE, related_name='downloads')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(blank=True, null=True)
+    
+    class Meta:
+        ordering = ['-downloaded_at']
+    
+    def __str__(self):
+        return f"{self.user.username} downloaded {self.resource.title}"
+
+
+class ClassAttendance(models.Model):
+    """Track who joined classes (optional)"""
+    class_schedule = models.ForeignKey(ClassSchedule, on_delete=models.CASCADE, related_name='attendance')
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    joined_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ['class_schedule', 'user']
+        ordering = ['-joined_at']
+    
+    def __str__(self):
+        return f"{self.user.username} joined {self.class_schedule.title}"
+
+
+# Signal to set file size automatically
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+
+@receiver(pre_save, sender=Resource)
+def set_file_size(sender, instance, **kwargs):
+    """Automatically set file size before saving"""
+    if instance.file and hasattr(instance.file, 'size'):
+        instance.file_size = instance.file.size

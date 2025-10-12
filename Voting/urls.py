@@ -16,4 +16,4 @@ urlpatterns = [
     
     # Candidate details
     path('candidate/<int:candidate_id>/', views.candidate_detail, name='candidate_detail'),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
