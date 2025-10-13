@@ -14,7 +14,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-change-this-key')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['https://nacos-portal.onrender.com/', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'nacos-portal.onrender.com', 
+    'localhost',
+    '127.0.0.1',
+]
 
 # Application definition
 INSTALLED_APPS = [
