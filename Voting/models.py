@@ -86,16 +86,54 @@ class Position(models.Model):
         return Vote.objects.filter(candidate__position=self).count()
 
 
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
+
 class Candidate(models.Model):
-    """Election candidates"""
-    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name='candidates')
+    """Election candidates - ENHANCED VERSION"""
+    position = models.ForeignKey('Position', on_delete=models.CASCADE, related_name='candidates')
     name = models.CharField(max_length=200)
     registration_number = models.CharField(max_length=50)
     level = models.CharField(max_length=20, blank=True)
+    
+    # Manifesto and Bio
     manifesto = models.TextField(help_text="Candidate's manifesto/objectives")
-    profile_image = models.ImageField(upload_to='candidates/', blank=True, null=True)
+    bio = models.TextField(blank=True, help_text="Short biography (optional)")
+    
+    # Images
+    profile_image = models.ImageField(
+        upload_to='candidates/profiles/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+        help_text="Profile photo"
+    )
+    campaign_poster = models.ImageField(
+        upload_to='candidates/posters/',
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=['jpg', 'jpeg', 'png'])],
+        help_text="Campaign poster/banner"
+    )
+    
+    # Additional Info (NEW)
+    slogan = models.CharField(max_length=200, blank=True, help_text="Campaign slogan")
+    achievements = models.TextField(blank=True, help_text="Past achievements and qualifications")
+    
+    # Social Media (NEW)
+    twitter = models.URLField(blank=True, max_length=200)
+    linkedin = models.URLField(blank=True, max_length=200)
+    instagram = models.URLField(blank=True, max_length=200)
+    facebook = models.URLField(blank=True, max_length=200)
+    
+    # Metadata
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Stats (NEW)
+    profile_views = models.IntegerField(default=0, help_text="Number of profile views")
     
     class Meta:
         ordering = ['name']
@@ -113,6 +151,21 @@ class Candidate(models.Model):
         if total == 0:
             return 0
         return round((self.get_vote_count() / total) * 100, 2)
+    
+    def increment_profile_views(self):
+        """Increment profile view count"""
+        self.profile_views += 1
+        self.save(update_fields=['profile_views'])
+    
+    def get_profile_image_url(self):
+        """Get profile image URL or placeholder"""
+        if self.profile_image:
+            return self.profile_image.url
+        return '/static/images/default-candidate.png'
+    
+    def has_social_media(self):
+        """Check if candidate has any social media links"""
+        return any([self.twitter, self.linkedin, self.instagram, self.facebook])
 
 
 class VoterProfile(models.Model):
