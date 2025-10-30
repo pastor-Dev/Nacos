@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet the Candidates - {{ election.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'election_detail' election.id %}" class="inline-flex items-center text-green-600 hover:text-green-700 font-medium mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1"><path d="m15 18-6-6 6-6"/></svg>
+                Back to Voting
+            </a>
+            <h1 class="text-4xl font-bold text-gray-800">Meet the Candidates</h1>
+            <p class="text-gray-600">{{ election.title }}</p>
+        </div>
+
+        <!-- Filter by Position -->
+        <div class="mb-8 bg-white rounded-xl shadow-lg p-6">
+            <label class="block text-sm font-semibold text-gray-700 mb-3">Filter by Position:</label>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'meet_candidates' election.id %}" class="px-4 py-2 rounded-lg font-medium transition-colors {% if not selected_position %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    All Positions
+                </a>
+                {% for position in positions %}
+                <a href="?position={{ position.id }}" class="px-4 py-2 rounded-lg font-medium transition-colors {% if selected_position == position.id|stringformat:'s' %}bg-green-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                    {{ position.get_name_display }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Candidates by Position -->
+        {% for group in candidates_by_position %}
+        <div class="mb-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center">
+                <span class="w-2 h-8 bg-green-600 rounded mr-3"></span>
+                {{ group.position.get_name_display }}
+                <span class="ml-3 text-lg font-normal text-gray-600">({{ group.candidates|length }} candidate{{ group.candidates|length|pluralize }})</span>
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for candidate in group.candidates %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow">
+                    <!-- Candidate Photo -->
+                    <div class="h-64 bg-gradient-to-br from-green-400 to-green-600 relative overflow-hidden">
+                        {% if candidate.profile_image %}
+                        <img src="{{ candidate.profile_image.url }}" alt="{{ candidate.name }}" class="w-full h-full object-cover">
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <span class="text-white font-bold text-8xl">{{ candidate.name.0 }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                            <h3 class="text-2xl font-bold text-white">{{ candidate.name }}</h3>
+                        </div>
+                    </div>
+                    
+                    <!-- Candidate Info -->
+                    <div class="p-6">
+                        <p class="text-sm text-gray-600 mb-2">{{ candidate.registration_number }}</p>
+                        {% if candidate.slogan %}
+                        <p class="text-sm italic text-gray-700 mb-4">"{{ candidate.slogan }}"</p>
+                        {% endif %}
+                        
+                        {% if candidate.bio %}
+                        <p class="text-sm text-gray-700 mb-4 line-clamp-3">{{ candidate.bio|truncatewords:25 }}</p>
+                        {% else %}
+                        <p class="text-sm text-gray-700 mb-4 line-clamp-3">{{ candidate.manifesto|truncatewords:25 }}</p>
+                        {% endif %}
+                        
+                        <div class="flex space-x-2">
+                            <a href="{% url 'enhanced_candidate_detail' candidate.id %}" class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center">
+                                View Profile
+                            </a>
+                            {% if candidate.has_social_media %}
+                            <div class="flex space-x-1">
+                                {% if candidate.twitter %}
+                                <a href="{{ candidate.twitter }}" target="_blank" class="w-10 h-10 bg-blue-400 text-white rounded-lg flex items-center justify-center hover:bg-blue-500 transition-colors">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path></svg>
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-300 mb-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+            <p class="text-gray-500">No candidates available</p>
+        </div>
+        {% endfor %}
+    </div>
+</body>
+</html>
