@@ -26,7 +26,7 @@ def get_client_ip(request):
 
 
 @login_required
-def election_list(request):
+def election_List(request):
     """Display list of all elections"""
     elections = Election.objects.all()
     
