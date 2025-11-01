@@ -54,7 +54,7 @@ def election_List(request):
         'has_profile': has_profile,
         'has_paid': has_paid,
     }
-    return render(request, 'voting/election_list.html', context)
+    return render(request, 'voting/election_List.html', context)
 
 
 @login_required
@@ -64,7 +64,7 @@ def voter_registration(request):
     try:
         voter_profile = request.user.voter_profile
         messages.info(request, 'You are already registered!')
-        return redirect('election_list')
+        return redirect('election_List')
     except VoterProfile.DoesNotExist:
         pass
     
@@ -92,7 +92,7 @@ def voter_registration(request):
                 request,
                 'Registration submitted! An admin will verify your details shortly.'
             )
-            return redirect('election_list')
+            return redirect('election_List')
             
         except ValidationError as e:
             messages.error(request, str(e))
@@ -129,7 +129,7 @@ def election_detail(request, election_id):
             request,
             'Your registration is pending admin verification. Please wait for approval.'
         )
-        return redirect('election_list')
+        return redirect('election_List')
     
     # Check if already voted
     has_voted = voter_profile.has_voted_in_election(election)
@@ -156,7 +156,7 @@ def election_detail(request, election_id):
         'can_vote': election.can_vote() and not has_voted,
     }
     
-    return render(request, 'voting/election_detail.html', context)
+    return render(request, 'election_detail.html', context)
 
 
 @login_required
@@ -285,7 +285,7 @@ def election_results(request, election_id):
         'total_voters': total_voters,
     }
     
-    return render(request, 'voting/election_results.html', context)
+    return render(request, 'election_results.html', context)
 
 
 @login_required
@@ -298,7 +298,7 @@ def candidate_detail(request, candidate_id):
         'election': candidate.position.election,
     }
     
-    return render(request, 'voting/candidate_detail.html', context)
+    return render(request, 'candidate_detail.html', context)
 
 
 # ============================================
@@ -352,7 +352,7 @@ def enhanced_candidate_detail(request, candidate_id):
         'can_vote': can_vote,
     }
     
-    return render(request, 'voting/candidate_profile.html', context)
+    return render(request, 'candidate_profile.html', context)
 
 
 @login_required
@@ -386,7 +386,7 @@ def meet_candidates(request, election_id):
         'selected_position': position_filter,
     }
     
-    return render(request, 'voting/meet_candidates.html', context)
+    return render(request, 'meet_candidates.html', context)
 
 
 @login_required
@@ -404,7 +404,7 @@ def compare_candidates(request, election_id):
             'election': election,
             'positions': positions,
         }
-        return render(request, 'voting/compare_select.html', context)
+        return render(request, 'compare_select.html', context)
     
     # Get selected candidates
     candidates = Candidate.objects.filter(
@@ -423,7 +423,7 @@ def compare_candidates(request, election_id):
         'same_position': same_position,
     }
     
-    return render(request, 'voting/compare_candidates.html', context)
+    return render(request, 'compare_candidates.html', context)
 
 
 @login_required
