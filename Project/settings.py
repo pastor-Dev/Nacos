@@ -18,6 +18,7 @@ ALLOWED_HOSTS = [
     'nacos-portal.onrender.com', 
     'localhost',
     '127.0.0.1',
+    'nacos-eight.vercel.app',
 ]
 
 # Application definition

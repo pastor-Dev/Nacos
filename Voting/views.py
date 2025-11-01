@@ -54,7 +54,7 @@ def election_List(request):
         'has_profile': has_profile,
         'has_paid': has_paid,
     }
-    return render(request, 'voting/election_List.html', context)
+    return render(request, 'election_List.html', context)
 
 
 @login_required
@@ -99,7 +99,7 @@ def voter_registration(request):
         except Exception as e:
             messages.error(request, f'Registration failed: {str(e)}')
     
-    return render(request, 'voting/voter_registration.html')
+    return render(request, 'voter_registration.html')
 
 
 @login_required
