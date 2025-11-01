@@ -1,6 +1,12 @@
+# ============================================
+# COMPLETE VOTING VIEWS - REPLACE ALL in voting/views.py
+# ============================================
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse, HttpResponse
+from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
@@ -20,7 +26,7 @@ def get_client_ip(request):
 
 
 @login_required
-def election_List(request):
+def election_list(request):
     """Display list of all elections"""
     elections = Election.objects.all()
     
@@ -48,7 +54,7 @@ def election_List(request):
         'has_profile': has_profile,
         'has_paid': has_paid,
     }
-    return render(request, 'election_List.html', context)
+    return render(request, 'voting/election_list.html', context)
 
 
 @login_required
@@ -78,8 +84,8 @@ def voter_registration(request):
                 registration_number=reg_number,
                 phone=phone,
                 level=level,
-                has_paid_dues=False,  # Will be updated by payment system
-                is_verified=False  # Admin must verify
+                has_paid_dues=False,
+                is_verified=False
             )
             
             messages.success(
@@ -93,7 +99,7 @@ def voter_registration(request):
         except Exception as e:
             messages.error(request, f'Registration failed: {str(e)}')
     
-    return render(request, 'voter_registration.html')
+    return render(request, 'voting/voter_registration.html')
 
 
 @login_required
@@ -150,7 +156,7 @@ def election_detail(request, election_id):
         'can_vote': election.can_vote() and not has_voted,
     }
     
-    return render(request, 'election_details.html', context)
+    return render(request, 'voting/election_detail.html', context)
 
 
 @login_required
@@ -182,7 +188,7 @@ def cast_vote(request, election_id):
     candidate_ids = []
     for key, value in request.POST.items():
         if key.startswith('position_'):
-            if value:  # Only add if a candidate was selected
+            if value:
                 candidate_ids.append(int(value))
     
     if not candidate_ids:
@@ -239,7 +245,7 @@ def election_results(request, election_id):
     
     if not can_view:
         messages.warning(request, 'Results are not yet available for this election.')
-        return redirect('election_details', election_id=election_id)
+        return redirect('election_detail', election_id=election_id)
     
     # Get all positions with candidates and vote counts
     positions = election.positions.prefetch_related('candidates').all()
@@ -279,12 +285,12 @@ def election_results(request, election_id):
         'total_voters': total_voters,
     }
     
-    return render(request, 'results.html', context)
+    return render(request, 'voting/election_results.html', context)
 
 
 @login_required
 def candidate_detail(request, candidate_id):
-    """Display candidate profile"""
+    """Display candidate profile (OLD VERSION - kept for compatibility)"""
     candidate = get_object_or_404(Candidate, id=candidate_id)
     
     context = {
@@ -293,6 +299,196 @@ def candidate_detail(request, candidate_id):
     }
     
     return render(request, 'voting/candidate_detail.html', context)
+
+
+# ============================================
+# ENHANCED CANDIDATE VIEWS (NEW)
+# ============================================
+
+@login_required
+def enhanced_candidate_detail(request, candidate_id):
+    """Enhanced candidate profile page"""
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    election = candidate.position.election
+    
+    # Increment profile views
+    candidate.increment_profile_views()
+    
+    # Get other candidates in same position
+    other_candidates = Candidate.objects.filter(
+        position=candidate.position,
+        is_active=True
+    ).exclude(id=candidate_id)
+    
+    # Check if user has voted for this position
+    has_voted_position = Vote.objects.filter(
+        voter=request.user,
+        candidate__position=candidate.position
+    ).exists()
+    
+    # Check if user voted for this specific candidate
+    user_voted_for_this = Vote.objects.filter(
+        voter=request.user,
+        candidate=candidate
+    ).exists()
+    
+    # Check if user can vote
+    try:
+        voter_profile = request.user.voter_profile
+        can_vote = (
+            voter_profile.can_vote(election) and
+            not has_voted_position and
+            election.can_vote()
+        )
+    except:
+        can_vote = False
+    
+    context = {
+        'candidate': candidate,
+        'election': election,
+        'other_candidates': other_candidates,
+        'has_voted_position': has_voted_position,
+        'user_voted_for_this': user_voted_for_this,
+        'can_vote': can_vote,
+    }
+    
+    return render(request, 'voting/candidate_profile.html', context)
+
+
+@login_required
+def meet_candidates(request, election_id):
+    """Meet the Candidates gallery page"""
+    election = get_object_or_404(Election, id=election_id)
+    
+    # Get filter parameters
+    position_filter = request.GET.get('position', '')
+    
+    # Get all positions for this election
+    positions = election.positions.prefetch_related('candidates').all()
+    
+    # Organize candidates by position
+    candidates_by_position = []
+    for position in positions:
+        if position_filter and str(position.id) != position_filter:
+            continue
+            
+        candidates = position.get_candidates().order_by('name')
+        if candidates:
+            candidates_by_position.append({
+                'position': position,
+                'candidates': candidates
+            })
+    
+    context = {
+        'election': election,
+        'candidates_by_position': candidates_by_position,
+        'positions': positions,
+        'selected_position': position_filter,
+    }
+    
+    return render(request, 'voting/meet_candidates.html', context)
+
+
+@login_required
+def compare_candidates(request, election_id):
+    """Compare multiple candidates side-by-side"""
+    election = get_object_or_404(Election, id=election_id)
+    
+    # Get candidate IDs from query params
+    candidate_ids = request.GET.getlist('candidates')
+    
+    if not candidate_ids or len(candidate_ids) < 2:
+        # No candidates selected, show selection page
+        positions = election.positions.prefetch_related('candidates').all()
+        context = {
+            'election': election,
+            'positions': positions,
+        }
+        return render(request, 'voting/compare_select.html', context)
+    
+    # Get selected candidates
+    candidates = Candidate.objects.filter(
+        id__in=candidate_ids,
+        position__election=election,
+        is_active=True
+    ).select_related('position')
+    
+    # Check if all candidates are from same position
+    positions = set(c.position for c in candidates)
+    same_position = len(positions) == 1
+    
+    context = {
+        'election': election,
+        'candidates': candidates,
+        'same_position': same_position,
+    }
+    
+    return render(request, 'voting/compare_candidates.html', context)
+
+
+@login_required
+def vote_for_candidate(request, candidate_id):
+    """Quick vote for a specific candidate from their profile"""
+    if request.method != 'POST':
+        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    election = candidate.position.election
+    
+    # Verify election is active
+    if not election.can_vote():
+        messages.error(request, 'Voting is not currently active')
+        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    
+    # Verify voter eligibility
+    try:
+        voter_profile = request.user.voter_profile
+    except:
+        messages.error(request, 'You must register as a voter first')
+        return redirect('voter_registration')
+    
+    if not voter_profile.can_vote(election):
+        messages.error(request, 'You are not eligible to vote')
+        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    
+    # Check if already voted for this position
+    existing_vote = Vote.objects.filter(
+        voter=request.user,
+        candidate__position=candidate.position
+    ).exists()
+    
+    if existing_vote:
+        messages.error(request, f'You have already voted for {candidate.position.get_name_display()}')
+        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    
+    # Cast vote
+    try:
+        with transaction.atomic():
+            # Get or create voting session
+            session, created = VotingSession.objects.get_or_create(
+                voter=request.user,
+                election=election,
+                defaults={'ip_address': get_client_ip(request)}
+            )
+            
+            # Create vote
+            Vote.objects.create(
+                voter=request.user,
+                candidate=candidate,
+                ip_address=get_client_ip(request)
+            )
+            
+            messages.success(
+                request,
+                f'Successfully voted for {candidate.name} as {candidate.position.get_name_display()}!'
+            )
+            
+            # Redirect to election detail to continue voting
+            return redirect('election_detail', election_id=election.id)
+            
+    except Exception as e:
+        messages.error(request, f'Vote failed: {str(e)}')
+        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
 
 
 # Signal to update voter payment status

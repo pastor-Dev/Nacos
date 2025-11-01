@@ -97,12 +97,8 @@ class Candidate(models.Model):
     name = models.CharField(max_length=200)
     registration_number = models.CharField(max_length=50)
     level = models.CharField(max_length=20, blank=True)
-    
-    # Manifesto and Bio
     manifesto = models.TextField(help_text="Candidate's manifesto/objectives")
     bio = models.TextField(blank=True, help_text="Short biography (optional)")
-    
-    # Images
     profile_image = models.ImageField(
         upload_to='candidates/profiles/',
         blank=True,

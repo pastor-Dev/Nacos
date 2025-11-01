@@ -4,7 +4,7 @@ from . import views
 
 urlpatterns = [
     # Election pages
-    path('elections/', views.election_List, name='election_list'),
+    path('elections/', views.election_list, name='election_list'),
     path('elections/<int:election_id>/', views.election_detail, name='election_details'),
     path('elections/<int:election_id>/results/', views.election_results, name='results'),
     

@@ -1,18 +1,87 @@
-# ============================================
-# COMPLETE VOTING VIEWS - REPLACE ALL in voting/views.py
-# ============================================
-
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse, HttpResponse
-from django.conf import settings
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
-from django.db import transaction
-from django.utils import timezone
-from django.core.exceptions import ValidationError
-from payments.models import Payment
-from .models import Election, Position, Candidate, Vote, VoterProfile, VotingSession
+from .forms import SignUpForm, SignInForm
+from django.contrib.auth.decorators import login_required
+
+
+def signin_view(request):
+    """Handles login (landing page)."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')  # Already logged in
+
+    form = SignInForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = authenticate(
+            request,
+            username=form.cleaned_data['username'],
+            password=form.cleaned_data['password']
+        )
+        if user is not None:
+            login(request, user)
+            messages.success(request, f"Welcome back, {user.username}!")
+            return redirect('dashboard')
+        else:
+            messages.error(request, "Invalid username or password.")
+
+    return render(request, 'index.html', {'form': form})
+
+
+def signup_view(request):
+    """Handles user registration."""
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+
+    form = SignUpForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, "Account created successfully! Please sign in.")
+        return redirect('signin')
+
+    return render(request, 'signup.html', {'form': form})
+
+
+@login_required(login_url='signin')
+def dashboard(request):
+    """Dashboard – accessible only to logged-in users."""
+    return render(request, 'dashboard.html')
+
+
+def logout_view(request):
+    """Logs out the user and redirects to sign-in."""
+    logout(request)
+    messages.info(request, "You have been logged out.")
+    return redirect('signin')
+
+
+def payment_view(request):
+    """
+    Renders the custom payment processing page.
+    This page contains the HTML/JS logic for the simulated payment flow.
+    """
+    # You can pass context here if needed, but for now, we just render the page.
+    return render(request, 'payment_page.html', {})
+
+
+
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def logout_view(request):
+    """Logout user from Django session"""
+    logout(request)
+    return redirect('signin')  # Change 'login' to your login page URL name
+
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.core.files.base import ContentFile
+from .models import UserProfile, UserPreferences, LoginHistory
+import base64
 
 
 def get_client_ip(request):
@@ -26,482 +95,461 @@ def get_client_ip(request):
 
 
 @login_required
-def election_list(request):
-    """Display list of all elections"""
-    elections = Election.objects.all()
+def profile_view(request):
+    """Display user profile"""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
     
-    # Auto-update election statuses
-    for election in elections:
-        election.auto_update_status()
+    # Get recent login history
+    login_history = LoginHistory.objects.filter(user=request.user)[:5]
     
-    # Check if user has voter profile
+    # Get user statistics
+    from payments.models import Payment
+    total_payments = Payment.objects.filter(user=request.user, status='success').count()
+    
     try:
-        voter_profile = request.user.voter_profile
-        has_profile = True
-    except VoterProfile.DoesNotExist:
-        voter_profile = None
-        has_profile = False
-    
-    # Check payment status
-    has_paid = Payment.objects.filter(
-        user=request.user,
-        status='success'
-    ).exists()
+        from voting.models import Vote
+        total_votes = Vote.objects.filter(voter=request.user).values('candidate__position__election').distinct().count()
+    except:
+        total_votes = 0
     
     context = {
-        'elections': elections,
-        'voter_profile': voter_profile,
-        'has_profile': has_profile,
-        'has_paid': has_paid,
+        'profile': profile,
+        'preferences': preferences,
+        'login_history': login_history,
+        'total_payments': total_payments,
+        'total_votes': total_votes,
     }
-    return render(request, 'voting/election_list.html', context)
+    return render(request, 'profile/profile_view.html', context)
 
 
 @login_required
-def voter_registration(request):
-    """Register voter with registration number"""
-    # Check if already registered
-    try:
-        voter_profile = request.user.voter_profile
-        messages.info(request, 'You are already registered!')
-        return redirect('election_list')
-    except VoterProfile.DoesNotExist:
-        pass
+def edit_profile(request):
+    """Edit user profile"""
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        reg_number = request.POST.get('registration_number', '').strip().upper()
-        phone = request.POST.get('phone', '').strip()
-        level = request.POST.get('level', '').strip()
+        # Update user basic info
+        request.user.first_name = request.POST.get('first_name', '')
+        request.user.last_name = request.POST.get('last_name', '')
+        request.user.email = request.POST.get('email', '')
+        request.user.save()
         
-        if not reg_number:
-            messages.error(request, 'Registration number is required')
-            return redirect('voter_registration')
+        # Update profile info
+        profile.bio = request.POST.get('bio', '')
+        profile.phone = request.POST.get('phone', '')
+        profile.level = request.POST.get('level', '')
+        profile.registration_number = request.POST.get('registration_number', '')
+        
+        # Social links
+        profile.twitter = request.POST.get('twitter', '')
+        profile.linkedin = request.POST.get('linkedin', '')
+        profile.github = request.POST.get('github', '')
+        
+        # Handle profile picture upload
+        if request.FILES.get('profile_picture'):
+            profile.profile_picture = request.FILES['profile_picture']
+        
+        # Handle base64 image from webcam
+        if request.POST.get('webcam_image'):
+            try:
+                format, imgstr = request.POST.get('webcam_image').split(';base64,')
+                ext = format.split('/')[-1]
+                data = ContentFile(base64.b64decode(imgstr), name=f'webcam_{request.user.id}.{ext}')
+                profile.profile_picture = data
+            except Exception as e:
+                messages.error(request, f'Failed to save webcam image: {str(e)}')
         
         try:
-            # Create voter profile
-            voter_profile = VoterProfile.objects.create(
-                user=request.user,
-                registration_number=reg_number,
-                phone=phone,
-                level=level,
-                has_paid_dues=False,
-                is_verified=False
-            )
-            
-            messages.success(
-                request,
-                'Registration submitted! An admin will verify your details shortly.'
-            )
-            return redirect('election_list')
-            
-        except ValidationError as e:
-            messages.error(request, str(e))
+            profile.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('profile_view')
         except Exception as e:
-            messages.error(request, f'Registration failed: {str(e)}')
-    
-    return render(request, 'voting/voter_registration.html')
-
-
-@login_required
-def election_detail(request, election_id):
-    """Display election details and voting interface"""
-    election = get_object_or_404(Election, id=election_id)
-    election.auto_update_status()
-    
-    # Check voter eligibility
-    try:
-        voter_profile = request.user.voter_profile
-    except VoterProfile.DoesNotExist:
-        messages.warning(request, 'You must register as a voter first!')
-        return redirect('voter_registration')
-    
-    # Check if voter has paid dues
-    if not voter_profile.has_paid_dues:
-        messages.error(
-            request,
-            'You must pay departmental dues before you can vote. Visit the payment page.'
-        )
-        return redirect('payment_page')
-    
-    # Check if voter is verified
-    if not voter_profile.is_verified:
-        messages.warning(
-            request,
-            'Your registration is pending admin verification. Please wait for approval.'
-        )
-        return redirect('election_list')
-    
-    # Check if already voted
-    has_voted = voter_profile.has_voted_in_election(election)
-    
-    # Get positions and candidates
-    positions = election.positions.prefetch_related('candidates').all()
-    
-    # Get user's votes if they've voted
-    user_votes = {}
-    if has_voted:
-        votes = Vote.objects.filter(
-            voter=request.user,
-            candidate__position__election=election
-        ).select_related('candidate', 'candidate__position')
-        
-        for vote in votes:
-            user_votes[vote.candidate.position.name] = vote.candidate
+            messages.error(request, f'Error updating profile: {str(e)}')
     
     context = {
-        'election': election,
-        'positions': positions,
-        'has_voted': has_voted,
-        'user_votes': user_votes,
-        'can_vote': election.can_vote() and not has_voted,
+        'profile': profile,
     }
-    
-    return render(request, 'voting/election_detail.html', context)
+    return render(request, 'profile/edit_profile.html', context)
 
 
 @login_required
-def cast_vote(request, election_id):
-    """Process vote submission"""
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Invalid request method'}, status=400)
+def edit_preferences(request):
+    """Edit user preferences"""
+    preferences, created = UserPreferences.objects.get_or_create(user=request.user)
     
-    election = get_object_or_404(Election, id=election_id)
-    
-    # Verify election is active
-    if not election.can_vote():
-        return JsonResponse({'error': 'Voting is not currently active'}, status=400)
-    
-    # Verify voter eligibility
-    try:
-        voter_profile = request.user.voter_profile
-    except VoterProfile.DoesNotExist:
-        return JsonResponse({'error': 'You must register as a voter first'}, status=403)
-    
-    if not voter_profile.can_vote(election):
-        return JsonResponse({'error': 'You are not eligible to vote'}, status=403)
-    
-    # Check if already voted
-    if voter_profile.has_voted_in_election(election):
-        return JsonResponse({'error': 'You have already voted in this election'}, status=400)
-    
-    # Get candidate selections from POST data
-    candidate_ids = []
-    for key, value in request.POST.items():
-        if key.startswith('position_'):
-            if value:
-                candidate_ids.append(int(value))
-    
-    if not candidate_ids:
-        return JsonResponse({'error': 'Please select at least one candidate'}, status=400)
-    
-    try:
-        with transaction.atomic():
-            # Create voting session
-            session = VotingSession.objects.create(
-                voter=request.user,
-                election=election,
-                ip_address=get_client_ip(request)
-            )
-            
-            # Cast votes
-            votes_cast = []
-            for candidate_id in candidate_ids:
-                candidate = get_object_or_404(Candidate, id=candidate_id)
-                
-                # Verify candidate belongs to this election
-                if candidate.position.election != election:
-                    raise ValidationError('Invalid candidate selection')
-                
-                # Create vote
-                vote = Vote.objects.create(
-                    voter=request.user,
-                    candidate=candidate,
-                    ip_address=get_client_ip(request)
-                )
-                votes_cast.append(vote)
-            
-            # Mark session as completed
-            session.mark_completed()
-            
-            return JsonResponse({
-                'success': True,
-                'message': f'Successfully cast {len(votes_cast)} vote(s)!',
-                'votes_count': len(votes_cast)
-            })
-            
-    except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': f'Vote submission failed: {str(e)}'}, status=500)
-
-
-@login_required
-def election_results(request, election_id):
-    """Display election results"""
-    election = get_object_or_404(Election, id=election_id)
-    
-    # Check if results should be visible
-    can_view = election.show_results or election.results_published or request.user.is_staff
-    
-    if not can_view:
-        messages.warning(request, 'Results are not yet available for this election.')
-        return redirect('election_detail', election_id=election_id)
-    
-    # Get all positions with candidates and vote counts
-    positions = election.positions.prefetch_related('candidates').all()
-    
-    results_data = []
-    total_voters = VotingSession.objects.filter(
-        election=election,
-        is_completed=True
-    ).values('voter').distinct().count()
-    
-    for position in positions:
-        candidates_data = []
-        total_votes = position.get_total_votes()
+    if request.method == 'POST':
+        # Notification settings
+        preferences.email_notifications = request.POST.get('email_notifications') == 'on'
+        preferences.sms_notifications = request.POST.get('sms_notifications') == 'on'
+        preferences.election_reminders = request.POST.get('election_reminders') == 'on'
+        preferences.payment_reminders = request.POST.get('payment_reminders') == 'on'
         
-        for candidate in position.get_candidates():
-            vote_count = candidate.get_vote_count()
-            percentage = candidate.get_vote_percentage()
-            
-            candidates_data.append({
-                'candidate': candidate,
-                'votes': vote_count,
-                'percentage': percentage
-            })
+        # Privacy settings
+        preferences.show_profile_to_members = request.POST.get('show_profile_to_members') == 'on'
+        preferences.show_email = request.POST.get('show_email') == 'on'
+        preferences.show_phone = request.POST.get('show_phone') == 'on'
         
-        # Sort by votes (descending)
-        candidates_data.sort(key=lambda x: x['votes'], reverse=True)
+        # Theme
+        preferences.dark_mode = request.POST.get('dark_mode') == 'on'
         
-        results_data.append({
-            'position': position,
-            'candidates': candidates_data,
-            'total_votes': total_votes
-        })
+        preferences.save()
+        messages.success(request, 'Preferences updated successfully!')
+        return redirect('profile_view')
     
     context = {
-        'election': election,
-        'results_data': results_data,
-        'total_voters': total_voters,
+        'preferences': preferences,
     }
-    
-    return render(request, 'voting/election_results.html', context)
+    return render(request, 'profile/edit_preferences.html', context)
 
 
 @login_required
-def candidate_detail(request, candidate_id):
-    """Display candidate profile (OLD VERSION - kept for compatibility)"""
-    candidate = get_object_or_404(Candidate, id=candidate_id)
+def change_password(request):
+    """Change user password"""
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)  # Keep user logged in
+            messages.success(request, 'Password changed successfully!')
+            return redirect('profile_view')
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    else:
+        form = PasswordChangeForm(request.user)
     
     context = {
-        'candidate': candidate,
-        'election': candidate.position.election,
+        'form': form,
     }
+    return render(request, 'profile/change_password.html', context)
+
+
+@login_required
+def delete_account(request):
+    """Delete user account"""
+    if request.method == 'POST':
+        password = request.POST.get('password')
+        confirm = request.POST.get('confirm_delete')
+        
+        if confirm == 'DELETE' and request.user.check_password(password):
+            # Log out user
+            from django.contrib.auth import logout
+            user = request.user
+            logout(request)
+            
+            # Delete user account
+            user.delete()
+            
+            messages.success(request, 'Your account has been deleted successfully.')
+            return redirect('login')
+        else:
+            messages.error(request, 'Invalid password or confirmation text.')
     
-    return render(request, 'voting/candidate_detail.html', context)
+    return render(request, 'profile/delete_account.html')
+
+
+@login_required
+def activity_log(request):
+    """View user activity log"""
+    # Login history
+    login_history = LoginHistory.objects.filter(user=request.user)[:20]
+    
+    # Payment history
+    from payments.models import Payment
+    payments = Payment.objects.filter(user=request.user).order_by('-created_at')[:10]
+    
+    # Voting history
+    try:
+        from voting.models import Vote
+        votes = Vote.objects.filter(voter=request.user).select_related('candidate', 'candidate__position').order_by('-timestamp')[:10]
+    except:
+        votes = []
+    
+    context = {
+        'login_history': login_history,
+        'payments': payments,
+        'votes': votes,
+    }
+    return render(request, 'profile/activity_log.html', context)
+
+
+# Helper function to log user login
+def log_user_login(request, user):
+    """Log user login for security tracking"""
+    ip_address = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    
+    LoginHistory.objects.create(
+        user=user,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        is_active=True
+    )
 
 
 # ============================================
-# ENHANCED CANDIDATE VIEWS (NEW)
+# E-LEARNING VIEWS - ADD THIS TO App/views.py
 # ============================================
 
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404
+from django.contrib import messages
+from django.db.models import Q, Count
+from django.utils import timezone
+from .models import Course, ClassSchedule, Resource, ResourceCategory, ResourceDownload, ClassAttendance
+
+
+def get_client_ip(request):
+    """Get client IP address"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
 @login_required
-def enhanced_candidate_detail(request, candidate_id):
-    """Enhanced candidate profile page"""
-    candidate = get_object_or_404(Candidate, id=candidate_id)
-    election = candidate.position.election
+def elearning_home(request):
+    """E-Learning home page with schedule and resources overview"""
+    # Get upcoming classes (next 7 days)
+    today = timezone.now().date()
+    upcoming_classes = ClassSchedule.objects.filter(
+        date__gte=today,
+        is_completed=False
+    ).select_related('course')[:10]
     
-    # Increment profile views
-    candidate.increment_profile_views()
+    # Get today's classes
+    today_classes = ClassSchedule.objects.filter(
+        date=today,
+        is_completed=False
+    ).select_related('course')
     
-    # Get other candidates in same position
-    other_candidates = Candidate.objects.filter(
-        position=candidate.position,
+    # Get recent resources
+    recent_resources = Resource.objects.filter(
         is_active=True
-    ).exclude(id=candidate_id)
+    ).select_related('course', 'category')[:6]
     
-    # Check if user has voted for this position
-    has_voted_position = Vote.objects.filter(
-        voter=request.user,
-        candidate__position=candidate.position
-    ).exists()
+    # Get popular resources (most downloaded)
+    popular_resources = Resource.objects.filter(
+        is_active=True
+    ).select_related('course', 'category').order_by('-download_count')[:6]
     
-    # Check if user voted for this specific candidate
-    user_voted_for_this = Vote.objects.filter(
-        voter=request.user,
-        candidate=candidate
-    ).exists()
+    # Get resource categories
+    categories = ResourceCategory.objects.annotate(
+        resource_count=Count('resources')
+    )
     
-    # Check if user can vote
-    try:
-        voter_profile = request.user.voter_profile
-        can_vote = (
-            voter_profile.can_vote(election) and
-            not has_voted_position and
-            election.can_vote()
+    # Get courses
+    courses = Course.objects.filter(is_active=True).annotate(
+        resource_count=Count('resources')
+    )
+    
+    context = {
+        'upcoming_classes': upcoming_classes,
+        'today_classes': today_classes,
+        'recent_resources': recent_resources,
+        'popular_resources': popular_resources,
+        'categories': categories,
+        'courses': courses,
+    }
+    return render(request, 'elearning/home.html', context)
+
+
+@login_required
+def class_schedule(request):
+    """View all class schedules"""
+    # Filter options
+    level_filter = request.GET.get('level', '')
+    course_filter = request.GET.get('course', '')
+    status_filter = request.GET.get('status', 'upcoming')
+    
+    # Base query
+    classes = ClassSchedule.objects.select_related('course')
+    
+    # Apply filters
+    if level_filter:
+        classes = classes.filter(course__level=level_filter)
+    
+    if course_filter:
+        classes = classes.filter(course__id=course_filter)
+    
+    # Status filter
+    today = timezone.now().date()
+    if status_filter == 'upcoming':
+        classes = classes.filter(date__gte=today, is_completed=False)
+    elif status_filter == 'past':
+        classes = classes.filter(Q(date__lt=today) | Q(is_completed=True))
+    elif status_filter == 'today':
+        classes = classes.filter(date=today, is_completed=False)
+    
+    # Get filter options
+    courses = Course.objects.filter(is_active=True)
+    levels = Course.objects.values_list('level', flat=True).distinct()
+    
+    context = {
+        'classes': classes,
+        'courses': courses,
+        'levels': levels,
+        'selected_level': level_filter,
+        'selected_course': course_filter,
+        'selected_status': status_filter,
+    }
+    return render(request, 'elearning/schedule.html', context)
+
+
+@login_required
+def join_class(request, class_id):
+    """Join a class and track attendance"""
+    class_schedule = get_object_or_404(ClassSchedule, id=class_id)
+    
+    # Track attendance
+    ClassAttendance.objects.get_or_create(
+        class_schedule=class_schedule,
+        user=request.user
+    )
+    
+    # Redirect to meeting link
+    messages.success(request, f'Joining {class_schedule.title}...')
+    return redirect(class_schedule.meeting_link)
+
+
+@login_required
+def resource_library(request):
+    """Browse all resources"""
+    # Search and filter
+    search_query = request.GET.get('search', '')
+    level_filter = request.GET.get('level', '')
+    course_filter = request.GET.get('course', '')
+    category_filter = request.GET.get('category', '')
+    
+    # Base query
+    resources = Resource.objects.filter(is_active=True).select_related('course', 'category', 'uploaded_by')
+    
+    # Search
+    if search_query:
+        resources = resources.filter(
+            Q(title__icontains=search_query) |
+            Q(description__icontains=search_query) |
+            Q(course__name__icontains=search_query)
         )
-    except:
-        can_vote = False
+    
+    # Filters
+    if level_filter:
+        resources = resources.filter(course__level=level_filter)
+    
+    if course_filter:
+        resources = resources.filter(course__id=course_filter)
+    
+    if category_filter:
+        resources = resources.filter(category__id=category_filter)
+    
+    # Get filter options
+    courses = Course.objects.filter(is_active=True)
+    categories = ResourceCategory.objects.all()
+    levels = Course.objects.values_list('level', flat=True).distinct()
     
     context = {
-        'candidate': candidate,
-        'election': election,
-        'other_candidates': other_candidates,
-        'has_voted_position': has_voted_position,
-        'user_voted_for_this': user_voted_for_this,
-        'can_vote': can_vote,
+        'resources': resources,
+        'courses': courses,
+        'categories': categories,
+        'levels': levels,
+        'search_query': search_query,
+        'selected_level': level_filter,
+        'selected_course': course_filter,
+        'selected_category': category_filter,
     }
-    
-    return render(request, 'voting/candidate_profile.html', context)
+    return render(request, 'elearning/resources.html', context)
 
 
 @login_required
-def meet_candidates(request, election_id):
-    """Meet the Candidates gallery page"""
-    election = get_object_or_404(Election, id=election_id)
+def download_resource(request, resource_id):
+    """Download a resource file"""
+    resource = get_object_or_404(Resource, id=resource_id, is_active=True)
     
-    # Get filter parameters
-    position_filter = request.GET.get('position', '')
+    # Track download
+    ResourceDownload.objects.create(
+        resource=resource,
+        user=request.user,
+        ip_address=get_client_ip(request)
+    )
     
-    # Get all positions for this election
-    positions = election.positions.prefetch_related('candidates').all()
+    # Increment counter
+    resource.increment_downloads()
     
-    # Organize candidates by position
-    candidates_by_position = []
-    for position in positions:
-        if position_filter and str(position.id) != position_filter:
-            continue
-            
-        candidates = position.get_candidates().order_by('name')
-        if candidates:
-            candidates_by_position.append({
-                'position': position,
-                'candidates': candidates
-            })
-    
-    context = {
-        'election': election,
-        'candidates_by_position': candidates_by_position,
-        'positions': positions,
-        'selected_position': position_filter,
-    }
-    
-    return render(request, 'voting/meet_candidates.html', context)
-
-
-@login_required
-def compare_candidates(request, election_id):
-    """Compare multiple candidates side-by-side"""
-    election = get_object_or_404(Election, id=election_id)
-    
-    # Get candidate IDs from query params
-    candidate_ids = request.GET.getlist('candidates')
-    
-    if not candidate_ids or len(candidate_ids) < 2:
-        # No candidates selected, show selection page
-        positions = election.positions.prefetch_related('candidates').all()
-        context = {
-            'election': election,
-            'positions': positions,
-        }
-        return render(request, 'voting/compare_select.html', context)
-    
-    # Get selected candidates
-    candidates = Candidate.objects.filter(
-        id__in=candidate_ids,
-        position__election=election,
-        is_active=True
-    ).select_related('position')
-    
-    # Check if all candidates are from same position
-    positions = set(c.position for c in candidates)
-    same_position = len(positions) == 1
-    
-    context = {
-        'election': election,
-        'candidates': candidates,
-        'same_position': same_position,
-    }
-    
-    return render(request, 'voting/compare_candidates.html', context)
-
-
-@login_required
-def vote_for_candidate(request, candidate_id):
-    """Quick vote for a specific candidate from their profile"""
-    if request.method != 'POST':
-        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
-    
-    candidate = get_object_or_404(Candidate, id=candidate_id)
-    election = candidate.position.election
-    
-    # Verify election is active
-    if not election.can_vote():
-        messages.error(request, 'Voting is not currently active')
-        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
-    
-    # Verify voter eligibility
+    # Serve file
     try:
-        voter_profile = request.user.voter_profile
-    except:
-        messages.error(request, 'You must register as a voter first')
-        return redirect('voter_registration')
+        response = FileResponse(resource.file.open('rb'))
+        response['Content-Disposition'] = f'attachment; filename="{resource.file.name.split("/")[-1]}"'
+        return response
+    except FileNotFoundError:
+        messages.error(request, 'File not found')
+        return redirect('resource_library')
+
+
+@login_required
+def resource_detail(request, resource_id):
+    """View resource details"""
+    resource = get_object_or_404(Resource, id=resource_id, is_active=True)
     
-    if not voter_profile.can_vote(election):
-        messages.error(request, 'You are not eligible to vote')
-        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
-    
-    # Check if already voted for this position
-    existing_vote = Vote.objects.filter(
-        voter=request.user,
-        candidate__position=candidate.position
+    # Check if user has downloaded this resource
+    has_downloaded = ResourceDownload.objects.filter(
+        resource=resource,
+        user=request.user
     ).exists()
     
-    if existing_vote:
-        messages.error(request, f'You have already voted for {candidate.position.get_name_display()}')
-        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    # Get related resources
+    related_resources = Resource.objects.filter(
+        course=resource.course,
+        is_active=True
+    ).exclude(id=resource_id)[:5]
     
-    # Cast vote
-    try:
-        with transaction.atomic():
-            # Get or create voting session
-            session, created = VotingSession.objects.get_or_create(
-                voter=request.user,
-                election=election,
-                defaults={'ip_address': get_client_ip(request)}
-            )
-            
-            # Create vote
-            Vote.objects.create(
-                voter=request.user,
-                candidate=candidate,
-                ip_address=get_client_ip(request)
-            )
-            
-            messages.success(
-                request,
-                f'Successfully voted for {candidate.name} as {candidate.position.get_name_display()}!'
-            )
-            
-            # Redirect to election detail to continue voting
-            return redirect('election_detail', election_id=election.id)
-            
-    except Exception as e:
-        messages.error(request, f'Vote failed: {str(e)}')
-        return redirect('enhanced_candidate_detail', candidate_id=candidate_id)
+    context = {
+        'resource': resource,
+        'has_downloaded': has_downloaded,
+        'related_resources': related_resources,
+    }
+    return render(request, 'elearning/resource_detail.html', context)
 
 
-# Signal to update voter payment status
-from django.db.models.signals import post_save
-from django.dispatch import receiver
+@login_required
+def my_downloads(request):
+    """View user's download history"""
+    downloads = ResourceDownload.objects.filter(
+        user=request.user
+    ).select_related('resource', 'resource__course').order_by('-downloaded_at')
+    
+    context = {
+        'downloads': downloads,
+    }
+    return render(request, 'elearning/my_downloads.html', context)
 
-@receiver(post_save, sender=Payment)
-def update_voter_payment_status(sender, instance, **kwargs):
-    """Automatically update voter's payment status when payment is successful"""
-    if instance.status == 'success':
-        try:
-            voter_profile = instance.user.voter_profile
-            voter_profile.has_paid_dues = True
-            voter_profile.save()
-        except VoterProfile.DoesNotExist:
-            pass  # User hasn't registered as voter yet
+
+@login_required
+def course_resources(request, course_id):
+    """View all resources for a specific course"""
+    course = get_object_or_404(Course, id=course_id, is_active=True)
+    
+    resources = Resource.objects.filter(
+        course=course,
+        is_active=True
+    ).select_related('category', 'uploaded_by')
+    
+    # Get course classes
+    upcoming_classes = ClassSchedule.objects.filter(
+        course=course,
+        date__gte=timezone.now().date(),
+        is_completed=False
+    )[:5]
+    
+    context = {
+        'course': course,
+        'resources': resources,
+        'upcoming_classes': upcoming_classes,
+    }
+    return render(request, 'elearning/course_detail.html', context)
+
+
+# END OF E-LEARNING VIEWS

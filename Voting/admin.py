@@ -130,6 +130,7 @@ class CandidateAdmin(admin.ModelAdmin):
             percentage
         )
     vote_count.short_description = 'Votes'
+    
 
 
 @admin.register(VoterProfile)
@@ -212,3 +213,32 @@ class VotingSessionAdmin(admin.ModelAdmin):
     
     def has_add_permission(self, request):
         return False
+
+
+    
+# @admin.register(Candidate)
+# # class CandidateAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'get_position', 'registration_number', 'profile_views', 'is_active']
+#     list_filter = ['position__election', 'position__name', 'is_active']
+#     search_fields = ['name', 'registration_number']
+#     readonly_fields = ['profile_views', 'created_at']
+    
+#     fieldsets = (
+#         ('Basic Information', {
+#             'fields': ('position', 'name', 'registration_number', 'level')
+#         }),
+#         ('Profile Content', {
+#             'fields': ('bio', 'slogan', 'manifesto', 'achievements')
+#         }),
+#         ('Images', {
+#             'fields': ('profile_image', 'campaign_poster')
+#         }),
+#         ('Social Media', {
+#             'fields': ('twitter', 'facebook', 'instagram', 'linkedin'),
+#             'classes': ('collapse',)
+#         }),
+#         ('Statistics', {
+#             'fields': ('profile_views', 'is_active', 'created_at'),
+#             'classes': ('collapse',)
+#         }),
+#     )
