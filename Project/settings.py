@@ -68,27 +68,39 @@ WSGI_APPLICATION = 'Project.wsgi.application'
 
 
 # Database (Render PostgreSQL)
-if os.getenv('RENDER'):
-    # Running on Render
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-            ssl_require=True
-        )
+
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mynewdb',  # Name of your new database
+        'USER': 'nacos',  # Your PostgreSQL username
+        'PASSWORD': 'School',  # Your PostgreSQL user password
+        'HOST': 'localhost',  # Usually 'localhost' or an IP address
+        'PORT': '5432',  # Default PostgreSQL port
     }
-else:
-    # Running locally
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': 'mydb',
-            'USER': 'postgres',
-            'PASSWORD': 'Datapwa@1',
-            'HOST': 'localhost',
-            'PORT': '5432',
-        }
-    }
+}
+# if os.getenv('RENDER'):
+#     # Running on Render
+#     DATABASES = {
+#         'default': dj_database_url.config(
+#             default=os.getenv('DATABASE_URL'),
+#             conn_max_age=600,
+#             ssl_require=True
+#         )
+#     }
+# else:
+#     # Running locally
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.postgresql',
+#             'NAME': 'mydb',
+#             'USER': 'postgres',
+#             'PASSWORD': 'Datapwa@1',
+#             'HOST': 'localhost',
+#             'PORT': '5432',
+#         }
+#     }
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
