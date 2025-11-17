@@ -69,17 +69,25 @@ WSGI_APPLICATION = 'Project.wsgi.application'
 
 # Database (Render PostgreSQL)
 
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mynewdb',  # Name of your new database
-        'USER': 'nacos',  # Your PostgreSQL username
-        'PASSWORD': 'School',  # Your PostgreSQL user password
-        'HOST': 'localhost',  # Usually 'localhost' or an IP address
-        'PORT': '5432',  # Default PostgreSQL port
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'mynewdb',  # Name of your new database
+#         'USER': 'nacos',  # Your PostgreSQL username
+#         'PASSWORD': 'School',  # Your PostgreSQL user password
+#         'HOST': 'localhost',  # Usually 'localhost' or an IP address
+#         'PORT': '5432',  # Default PostgreSQL port
+#     }
+# }
 # if os.getenv('RENDER'):
 #     # Running on Render
 #     DATABASES = {
