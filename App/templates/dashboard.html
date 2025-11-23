@@ -48,12 +48,12 @@
                     greetingElements.forEach(el => el.textContent = capitalizedName);
                     
                     // After successful authentication, load the default page content
-                    if (!window.initialLoadDone) {
-                         // Check if there's a hash in the URL for deep linking, otherwise load 'home'
-                        const initialPage = window.location.hash.substring(1) || 'home';
-                        window.navigateTo(initialPage);
-                        window.initialLoadDone = true;
-                    }
+                    // if (!window.initialLoadDone) {
+                    //      // Check if there's a hash in the URL for deep linking, otherwise load 'home'
+                    //     const initialPage = window.location.hash.substring(1) || 'home';
+                    //     window.navigateTo(initialPage);
+                    //     window.initialLoadDone = true;
+                    // }
                 }
             });
         }
@@ -153,25 +153,27 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-menu"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
                     </button>
                 </div>
-                <!-- Mobile menu content (hidden by default) -->
                 <div id="mobileMenu" class="hidden mt-4 space-y-2">
-                    <!-- Nav links must match desktop nav links -->
+                    
                     <a href="#home" data-page="home" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-home"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                          Home
                     </a>
-                    <a href="{% url 'payment_page' %}"  class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                    <a href="{% url 'payment_page' %}" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-credit-card"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
                         Payment
                     </a>
-                    <a href="{% url 'elearning_home' %}" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-gray-700 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-graduation-cap"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
-                        <span>E-learning</span>
+                    
+                    <a href="{% url 'elearning_home' %}" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-graduation-cap"><path d="M21.43 14.57L12 19L2.57 14.57V5.43L12 1L21.43 5.43V14.57z"/><path d="M21.43 5.43L12 10L2.57 5.43"/></svg>
+                        E-learning
                     </a>
-                    <a href="{% url 'election_list' %}"  class="nav-link flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
-                        <span>Voting</span>
+                    
+                    <a href="{% url 'election_list' %}" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
+                        Voting
                     </a>
+                    
                     <a href="#message" data-page="message" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-message-square"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                         Message
@@ -180,25 +182,26 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-clipboard-list"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 15h4"/><path d="M8 11h.01"/><path d="M8 15h.01"/></svg>
                         Assignment
                     </a>
-                    <a href="{% url 'profile_view' %}" class="flex items-center space-x-3 p-3 rounded-xl hover:bg-green-700 font-medium text-green-200 transition-colors duration-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
-                        <span>Profile</span>
+                    
+                    <a href="{% url 'profile_view' %}" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-vote"><path d="m18 10-6-8-6 8"/><path d="M12 2v20"/><path d="M12 14h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/></svg>
+                        Profile
                     </a>
+                    
                     <a href="#settings" data-page="settings" class="nav-link block p-3 rounded-xl text-gray-700 hover:bg-green-100 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-settings"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.44.58a2 2 0 0 0 .73 2.73l.15.08a2 2 0 0 1 1 1.74v.18a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.44-.58a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.18a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
                         Settings
                     </a>
+                    
                     <a href="#" id="mobile-logout" class="block p-3 rounded-xl text-red-600 hover:bg-red-50 font-medium transition-colors duration-200">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2 lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
                         Logout
                     </a>
-                </div>
+                    </div>
             </nav>
 
             <!-- Main Content Container for Dynamic Content -->
             <div id="content-area" class="p-6 md:p-8 space-y-8">
-                <!-- Content will be injected here by JavaScript -->
-                <p class="text-center text-gray-500 py-10">Loading dashboard content...</p>
             </div>
         </main>
     </div>
@@ -573,10 +576,50 @@
         confirmLogoutBtn.addEventListener('click', handleLogout);
         cancelLogoutBtn.addEventListener('click', hideLogoutModal);
         
-        // Expose navigateTo globally for initial load script
-        window.navigateTo = navigateTo;
+        // // Expose navigateTo globally for initial load script
+        // window.navigateTo = navigateTo;
         
-    </script>
+
+
+
+
+                                    /* --- EVENT LISTENERS (Rest of your script remains here) --- */
+
+                            // ... (your existing event listeners: mobileMenuButton, profileMenuButton, window.click, logout links) ...
+
+                            // Add click listeners to the modal buttons
+                            confirmLogoutBtn.addEventListener('click', handleLogout);
+                            cancelLogoutBtn.addEventListener('click', hideLogoutModal);
+
+                            // Expose navigateTo globally for initial load script
+                            window.navigateTo = navigateTo;
+
+
+                            /* --- NEW INITIAL LOAD LOGIC --- */
+
+                            // Function to handle the actual content initialization
+                            function initializeDashboard() {
+                                // Check if there's a specific page requested in the URL hash (e.g., #payment)
+                                // If not, it defaults to 'home'.
+                                const initialPage = window.location.hash.substring(1) || 'home';
+                                
+                                // Load the initial content immediately
+                                navigateTo(initialPage);
+                            }
+
+                            // Call the initialization function once the DOM is ready
+                            document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+                            // NOTE: The Firebase logic above still uses the initialLoadDone flag 
+                            // and navigateTo. If the Firebase script runs *after* the DOMContentLoaded, 
+                            // we need to prevent double-navigation.
+
+                            // We will make a small change inside the Firebase script block at the top 
+                            // to prevent it from navigating if the page is already loaded (see section B).
+
+      </script>
+        
+
 
 
 
