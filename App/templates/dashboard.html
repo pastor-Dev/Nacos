@@ -509,16 +509,38 @@
 
         /* --- EVENT LISTENERS --- */
 
+        // // Event listener for all navigation links (desktop and mobile)
+        // document.querySelectorAll('.nav-link').forEach(link => {
+        //     link.addEventListener('click', (event) => {
+        //         event.preventDefault();
+        //         const pageName = link.dataset.page;
+        //         if (pageName) {
+        //             navigateTo(pageName);
+        //         }
+        //     });
+        // });
+
+        // below is an admended version of the event listener
+
         // Event listener for all navigation links (desktop and mobile)
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.addEventListener('click', (event) => {
-                event.preventDefault();
-                const pageName = link.dataset.page;
-                if (pageName) {
-                    navigateTo(pageName);
-                }
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (event) => {
+                    const pageName = link.dataset.page;
+                    const href = link.getAttribute('href');
+                    
+                    // Only prevent default for hash links with data-page attribute
+                    if (pageName && href && href.startsWith('#')) {
+                        event.preventDefault();
+                        navigateTo(pageName);
+                    }
+                    // For links without data-page (Payment, Voting, E-learning, Profile), 
+                    // let them navigate normally - don't prevent default
+                    // Just close the mobile menu
+                    else if (!pageName) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                });
             });
-        });
 
         // Listen for hash changes in the URL (e.g., when using the browser back/forward buttons)
         window.addEventListener('hashchange', () => {
