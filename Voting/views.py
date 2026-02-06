@@ -285,7 +285,7 @@ def election_results(request, election_id):
         'total_voters': total_voters,
     }
     
-    return render(request, 'eresults.html', context)
+    return render(request, 'results.html', context)
 
 
 @login_required
