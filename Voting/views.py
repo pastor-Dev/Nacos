@@ -156,7 +156,7 @@ def election_detail(request, election_id):
         'can_vote': election.can_vote() and not has_voted,
     }
     
-    return render(request, 'election_details.html', context)
+    return render(request, 'election_detail.html', context)
 
 
 @login_required
