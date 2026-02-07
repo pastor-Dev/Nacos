@@ -156,7 +156,7 @@ def election_detail(request, election_id):
         'can_vote': election.can_vote() and not has_voted,
     }
     
-    return render(request, 'election_detail.html', context)
+    return render(request, 'election_details.html', context)
 
 
 @login_required
@@ -484,7 +484,7 @@ def vote_for_candidate(request, candidate_id):
             )
             
             # Redirect to election detail to continue voting
-            return redirect('election_details', election_id=election.id)
+            return redirect('election_detail', election_id=election.id)
             
     except Exception as e:
         messages.error(request, f'Vote failed: {str(e)}')
